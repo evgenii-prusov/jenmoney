@@ -1,0 +1,86 @@
+### API Testing for JenMoney Backend
+@baseUrl = http://localhost:8000
+@contentType = application/json
+
+### Health Check
+GET {{baseUrl}}/health
+
+### Create Account - Bank
+POST {{baseUrl}}/api/v1/accounts/
+Content-Type: {{contentType}}
+
+{
+  "name": "Main Checking",
+  "account_type": "bank",
+  "currency": "USD",
+  "balance": 5000.50,
+  "description": "Primary checking account"
+}
+
+### Create Account - Broker
+POST {{baseUrl}}/api/v1/accounts/
+Content-Type: {{contentType}}
+
+{
+  "name": "Investment Portfolio",
+  "account_type": "broker",
+  "currency": "USD",
+  "balance": 25000.00,
+  "description": "Brokerage account for stocks"
+}
+
+### Create Account - Cash
+POST {{baseUrl}}/api/v1/accounts/
+Content-Type: {{contentType}}
+
+{
+  "name": "Emergency Fund",
+  "account_type": "cash",
+  "currency": "EUR",
+  "balance": 10000.00,
+  "description": "Cash reserves in Euros"
+}
+
+### Get All Accounts
+GET {{baseUrl}}/api/v1/accounts/
+
+### Get Accounts with Pagination
+GET {{baseUrl}}/api/v1/accounts/?skip=0&limit=10
+
+### Get Single Account by ID
+# Replace with actual account ID from create response
+@accountId = 30403013-7146-4122-844a-6ab5883257c1
+GET {{baseUrl}}/api/v1/accounts/{{accountId}}
+
+### Update Account
+# Replace with actual account ID
+PATCH {{baseUrl}}/api/v1/accounts/{{accountId}}
+Content-Type: {{contentType}}
+
+{
+  "balance": 27500.75,
+  "description": "Updated balance after gains"
+}
+
+### Update Account - Partial Update
+PATCH {{baseUrl}}/api/v1/accounts/{{accountId}}
+Content-Type: {{contentType}}
+
+{
+  "name": "Updated Investment Portfolio"
+}
+
+### Delete Account
+# Replace with actual account ID
+DELETE {{baseUrl}}/api/v1/accounts/{{accountId}}
+
+### Test Invalid Account ID
+GET {{baseUrl}}/api/v1/accounts/invalid-uuid-here
+
+### Test Creating Account with Minimal Data
+POST {{baseUrl}}/api/v1/accounts/
+Content-Type: {{contentType}}
+
+{
+  "name": "Simple Account"
+}
