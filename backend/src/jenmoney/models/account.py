@@ -9,7 +9,7 @@ from jenmoney.database import Base
 class Account(Base):  # type: ignore[misc]
     __tablename__ = "accounts"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(100), nullable=False, index=True)
     currency = Column(String(3), nullable=False, default="EUR")
     balance = Column(

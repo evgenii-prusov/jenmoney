@@ -1,4 +1,4 @@
-.PHONY: help dev server stop lint format format-check typecheck check test test-cov test-fast db-init db-clean clean install
+.PHONY: help dev dev-backend dev-frontend dev-all build build-frontend server stop stop-all stop-backend stop-frontend lint format format-check typecheck check test test-cov test-fast db-init db-clean clean clean-all install install-backend install-frontend setup reset
 
 # Default target
 help: ## Show this help message
@@ -7,18 +7,48 @@ help: ## Show this help message
 	@echo "Available targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
 
-# Server Management
-dev: ## Start development server with hot reload
-	@echo "Starting development server..."
+# Development Commands
+dev: dev-all ## Start both backend and frontend development servers (alias for dev-all)
+
+dev-all: ## Start both backend and frontend development servers
+	@echo "Starting all development servers..."
+	@make dev-backend &
+	@make dev-frontend
+
+dev-backend: ## Start backend development server with hot reload
+	@echo "Starting backend development server..."
 	cd backend && uvicorn jenmoney.main:app --reload --host 0.0.0.0 --port 8000
 
-server: ## Start production server
-	@echo "Starting production server..."
+dev-frontend: ## Start frontend development server
+	@echo "Starting frontend development server..."
+	cd frontend && npm run dev
+
+# Build Commands
+build: build-frontend ## Build production assets (alias for build-frontend)
+
+build-frontend: ## Build frontend for production
+	@echo "Building frontend for production..."
+	cd frontend && npm run build
+
+# Server Management
+server: ## Start backend production server
+	@echo "Starting backend production server..."
 	cd backend && uvicorn jenmoney.main:app --host 0.0.0.0 --port 8000
 
-stop: ## Stop the development server
-	@echo "Stopping development server..."
-	@pkill -f "uvicorn jenmoney.main:app" || echo "Server not running"
+stop: stop-all ## Stop all development servers (alias for stop-all)
+
+stop-all: ## Stop all development servers
+	@echo "Stopping all development servers..."
+	@pkill -f "uvicorn jenmoney.main:app" || echo "Backend server not running"
+	@pkill -f "vite" || echo "Frontend server not running"
+
+stop-backend: ## Stop backend development server
+	@echo "Stopping backend development server..."
+	@pkill -f "uvicorn jenmoney.main:app" || echo "Backend server not running"
+
+stop-frontend: ## Stop frontend development server
+	@echo "Stopping frontend development server..."
+	@pkill -f "vite" || echo "Frontend server not running"
 
 # Code Quality
 lint: ## Run ruff linter
@@ -66,8 +96,8 @@ db-clean: ## Remove database file
 	rm -f backend/data/finance.db
 
 # Utility Commands
-clean: ## Clean up cache files and directories
-	@echo "Cleaning up..."
+clean: ## Clean up cache files and build directories
+	@echo "Cleaning up backend cache..."
 	find backend -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find backend -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	find backend -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
@@ -75,7 +105,33 @@ clean: ## Clean up cache files and directories
 	find backend -type f -name "*.pyc" -delete 2>/dev/null || true
 	find backend -type f -name "*.pyo" -delete 2>/dev/null || true
 	find backend -type f -name ".coverage" -delete 2>/dev/null || true
+	@echo "Cleaning up frontend build..."
+	rm -rf frontend/dist frontend/node_modules/.vite 2>/dev/null || true
 
-install: ## Install all dependencies including dev
-	@echo "Installing dependencies..."
+clean-all: clean ## Deep clean including node_modules and virtual environments
+	@echo "Deep cleaning..."
+	rm -rf frontend/node_modules backend/.venv backend/venv 2>/dev/null || true
+
+# Installation Commands
+install: install-backend install-frontend ## Install all dependencies
+
+install-backend: ## Install backend dependencies including dev
+	@echo "Installing backend dependencies..."
 	cd backend && pip install -e ".[dev]"
+
+install-frontend: ## Install frontend dependencies
+	@echo "Installing frontend dependencies..."
+	cd frontend && npm install
+
+# Quick Setup Commands
+setup: ## Initial project setup (install + db init)
+	@echo "Setting up project..."
+	@make install
+	@make db-init
+	@echo "Setup complete! Run 'make dev' to start development servers."
+
+reset: ## Reset the project (clean + setup)
+	@echo "Resetting project..."
+	@make clean-all
+	@make db-clean
+	@make setup
