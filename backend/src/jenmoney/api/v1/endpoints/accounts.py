@@ -38,11 +38,7 @@ def read_accounts(
 
 
 @router.get("/{account_id}", response_model=schemas.AccountResponse)
-def read_account(
-    *,
-    db: Session = Depends(get_db),
-    account_id: int,
-) -> Any:
+def read_account(*, db: Session = Depends(get_db), account_id: int) -> Any:
     account = crud.account.get(db=db, id=account_id)
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
@@ -64,11 +60,7 @@ def update_account(
 
 
 @router.delete("/{account_id}", response_model=schemas.AccountResponse)
-def delete_account(
-    *,
-    db: Session = Depends(get_db),
-    account_id: int,
-) -> Any:
+def delete_account(*, db: Session = Depends(get_db), account_id: int) -> Any:
     account = crud.account.get(db=db, id=account_id)
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")

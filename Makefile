@@ -10,11 +10,11 @@ help: ## Show this help message
 # Server Management
 dev: ## Start development server with hot reload
 	@echo "Starting development server..."
-	uvicorn jenmoney.main:app --reload --host 0.0.0.0 --port 8000
+	cd backend && uvicorn jenmoney.main:app --reload --host 0.0.0.0 --port 8000
 
 server: ## Start production server
 	@echo "Starting production server..."
-	uvicorn jenmoney.main:app --host 0.0.0.0 --port 8000
+	cd backend && uvicorn jenmoney.main:app --host 0.0.0.0 --port 8000
 
 stop: ## Stop the development server
 	@echo "Stopping development server..."
@@ -23,19 +23,19 @@ stop: ## Stop the development server
 # Code Quality
 lint: ## Run ruff linter
 	@echo "Running ruff linter..."
-	ruff check src/
+	cd backend && ruff check src/
 
 format: ## Format code with ruff
 	@echo "Formatting code..."
-	ruff format src/
+	cd backend && ruff format src/
 
 format-check: ## Check code formatting without modifying
 	@echo "Checking code format..."
-	ruff format --check src/
+	cd backend && ruff format --check src/
 
 typecheck: ## Run mypy type checker
 	@echo "Running type checker..."
-	mypy src/
+	cd backend && mypy src/
 
 check: ## Run all static checks (lint + format check + typecheck)
 	@echo "Running all static checks..."
@@ -46,36 +46,36 @@ check: ## Run all static checks (lint + format check + typecheck)
 # Testing
 test: ## Run all tests with verbose output
 	@echo "Running tests..."
-	pytest -v
+	cd backend && pytest -v
 
 test-cov: ## Run tests with coverage report
 	@echo "Running tests with coverage..."
-	pytest --cov=jenmoney --cov-report=term-missing
+	cd backend && pytest --cov=jenmoney --cov-report=term-missing
 
 test-fast: ## Run tests without verbose output
 	@echo "Running tests (fast)..."
-	pytest
+	cd backend && pytest
 
 # Database
 db-init: ## Initialize database
 	@echo "Initializing database..."
-	python -c "from jenmoney.database import init_db; init_db()"
+	cd backend && python -c "from jenmoney.database import init_db; init_db()"
 
 db-clean: ## Remove database file
 	@echo "Removing database file..."
-	rm -f data/finance.db
+	rm -f backend/data/finance.db
 
 # Utility Commands
 clean: ## Clean up cache files and directories
 	@echo "Cleaning up..."
-	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name "*.pyc" -delete 2>/dev/null || true
-	find . -type f -name "*.pyo" -delete 2>/dev/null || true
-	find . -type f -name ".coverage" -delete 2>/dev/null || true
+	find backend -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	find backend -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	find backend -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	find backend -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
+	find backend -type f -name "*.pyc" -delete 2>/dev/null || true
+	find backend -type f -name "*.pyo" -delete 2>/dev/null || true
+	find backend -type f -name ".coverage" -delete 2>/dev/null || true
 
 install: ## Install all dependencies including dev
 	@echo "Installing dependencies..."
-	pip install -e ".[dev]"
+	cd backend && pip install -e ".[dev]"

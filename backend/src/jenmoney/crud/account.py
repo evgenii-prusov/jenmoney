@@ -15,28 +15,13 @@ class CRUDAccount:
     def get(self, db: Session, id: int) -> Account | None:
         return db.query(Account).filter(Account.id == id).first()
 
-    def get_multi(
-        self,
-        db: Session,
-        *,
-        skip: int = 0,
-        limit: int = 100,
-    ) -> list[Account]:
+    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> list[Account]:
         return db.query(Account).offset(skip).limit(limit).all()
 
-    def count(
-        self,
-        db: Session,
-    ) -> int:
+    def count(self, db: Session) -> int:
         return db.query(Account).count()
 
-    def update(
-        self,
-        db: Session,
-        *,
-        db_obj: Account,
-        obj_in: AccountUpdate,
-    ) -> Account:
+    def update(self, db: Session, *, db_obj: Account, obj_in: AccountUpdate) -> Account:
         update_data = obj_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_obj, field, value)
