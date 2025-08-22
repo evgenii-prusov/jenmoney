@@ -1,0 +1,33 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.2
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.1
+    hooks:
+      - id: mypy
+        files: ^backend/src/
+        args: [--config-file=backend/pyproject.toml]
+        additional_dependencies:
+          - fastapi
+          - sqlalchemy
+          - pydantic
+          - pydantic-settings
+          - python-dotenv
+          - pytest
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: bash -c 'cd backend && uv run pytest tests/'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
