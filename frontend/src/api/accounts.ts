@@ -7,7 +7,7 @@ import type {
   PaginationParams,
 } from '../types/account';
 
-const ACCOUNTS_ENDPOINT = '/accounts';
+const ACCOUNTS_ENDPOINT = '/accounts/';
 
 export const accountsApi = {
   getAccounts: async (params?: PaginationParams): Promise<AccountListResponse> => {
@@ -18,7 +18,7 @@ export const accountsApi = {
   },
 
   getAccount: async (id: number): Promise<Account> => {
-    const { data } = await apiClient.get<Account>(`${ACCOUNTS_ENDPOINT}/${id}`);
+    const { data } = await apiClient.get<Account>(`${ACCOUNTS_ENDPOINT}${id}`);
     return data;
   },
 
@@ -29,14 +29,14 @@ export const accountsApi = {
 
   updateAccount: async (id: number, account: AccountUpdate): Promise<Account> => {
     const { data } = await apiClient.patch<Account>(
-      `${ACCOUNTS_ENDPOINT}/${id}`,
+      `${ACCOUNTS_ENDPOINT}${id}`,
       account
     );
     return data;
   },
 
   deleteAccount: async (id: number): Promise<Account> => {
-    const { data } = await apiClient.delete<Account>(`${ACCOUNTS_ENDPOINT}/${id}`);
+    const { data } = await apiClient.delete<Account>(`${ACCOUNTS_ENDPOINT}${id}`);
     return data;
   },
 };
