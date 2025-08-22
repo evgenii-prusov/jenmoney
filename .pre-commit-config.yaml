@@ -21,6 +21,7 @@ repos:
           - pydantic-settings
           - python-dotenv
           - pytest
+          - uvicorn
 
   - repo: local
     hooks:

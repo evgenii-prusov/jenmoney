@@ -10,14 +10,15 @@ help: ## Show this help message
 # Development Commands
 dev: dev-all ## Start both backend and frontend development servers (alias for dev-all)
 
-dev-all: ## Start both backend and frontend development servers
+dev-all: stop-all clean-ports ## Start both backend and frontend development servers
 	@echo "Starting all development servers..."
 	@make dev-backend &
+	@sleep 2
 	@make dev-frontend
 
 dev-backend: ## Start backend development server with hot reload
 	@echo "Starting backend development server..."
-	cd backend && uvicorn jenmoney.main:app --reload --host 0.0.0.0 --port 8000
+	cd backend && uv run uvicorn jenmoney.main:app --reload --host 0.0.0.0 --port 8000
 
 dev-frontend: ## Start frontend development server
 	@echo "Starting frontend development server..."
@@ -33,7 +34,7 @@ build-frontend: ## Build frontend for production
 # Server Management
 server: ## Start backend production server
 	@echo "Starting backend production server..."
-	cd backend && uvicorn jenmoney.main:app --host 0.0.0.0 --port 8000
+	cd backend && uv run uvicorn jenmoney.main:app --host 0.0.0.0 --port 8000
 
 stop: stop-all ## Stop all development servers (alias for stop-all)
 
@@ -50,22 +51,29 @@ stop-frontend: ## Stop frontend development server
 	@echo "Stopping frontend development server..."
 	@pkill -f "vite" || echo "Frontend server not running"
 
+clean-ports: ## Kill processes using development ports (8000, 5173)
+	@echo "Cleaning up development ports..."
+	@lsof -ti:8000 | xargs kill -9 2>/dev/null || echo "Port 8000 is free"
+	@lsof -ti:5173 | xargs kill -9 2>/dev/null || echo "Port 5173 is free"
+
+stop-clean: clean-ports stop-all ## Stop all servers and clean up ports
+
 # Code Quality
 lint: ## Run ruff linter
 	@echo "Running ruff linter..."
-	cd backend && ruff check src/
+	cd backend && uv run ruff check src/
 
 format: ## Format code with ruff
 	@echo "Formatting code..."
-	cd backend && ruff format src/
+	cd backend && uv run ruff format src/
 
 format-check: ## Check code formatting without modifying
 	@echo "Checking code format..."
-	cd backend && ruff format --check src/
+	cd backend && uv run ruff format --check src/
 
 typecheck: ## Run mypy type checker
 	@echo "Running type checker..."
-	cd backend && mypy src/
+	cd backend && uv run mypy src/
 
 check: ## Run all static checks (lint + format check + typecheck)
 	@echo "Running all static checks..."
@@ -76,20 +84,20 @@ check: ## Run all static checks (lint + format check + typecheck)
 # Testing
 test: ## Run all tests with verbose output
 	@echo "Running tests..."
-	cd backend && pytest -v
+	cd backend && uv run pytest -v
 
 test-cov: ## Run tests with coverage report
 	@echo "Running tests with coverage..."
-	cd backend && pytest --cov=jenmoney --cov-report=term-missing
+	cd backend && uv run pytest --cov=jenmoney --cov-report=term-missing
 
 test-fast: ## Run tests without verbose output
 	@echo "Running tests (fast)..."
-	cd backend && pytest
+	cd backend && uv run pytest
 
 # Database
 db-init: ## Initialize database
 	@echo "Initializing database..."
-	cd backend && python -c "from jenmoney.database import init_db; init_db()"
+	cd backend && uv run python -c "from jenmoney.database import init_db; init_db()"
 
 db-clean: ## Remove database file
 	@echo "Removing database file..."
@@ -117,7 +125,7 @@ install: install-backend install-frontend ## Install all dependencies
 
 install-backend: ## Install backend dependencies including dev
 	@echo "Installing backend dependencies..."
-	cd backend && pip install -e ".[dev]"
+	cd backend && uv sync --dev
 
 install-frontend: ## Install frontend dependencies
 	@echo "Installing frontend dependencies..."

@@ -1,7 +1,4 @@
-import pytest
 from fastapi.testclient import TestClient
-
-from jenmoney.schemas.account import Currency
 
 
 class TestAccountCreate:
@@ -82,9 +79,7 @@ class TestAccountList:
         assert data["pages"] == 0
 
     def test_get_accounts_with_data(self, client: TestClient):
-        accounts = [
-            {"name": f"Account {i}", "balance": float(i * 100)} for i in range(5)
-        ]
+        accounts = [{"name": f"Account {i}", "balance": float(i * 100)} for i in range(5)]
         created_ids = []
         for account in accounts:
             response = client.post("/api/v1/accounts/", json=account)
