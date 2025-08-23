@@ -1,4 +1,4 @@
-.PHONY: help dev dev-backend dev-frontend stop-all clean-ports lint format typecheck test db-init db-clean clean install-backend install-frontend setup
+.PHONY: help dev dev-backend dev-frontend stop-all clean-ports lint format typecheck test db-init db-clean clean install-backend install-frontend setup pr-check branch-new branch-sync
 
 # Default target
 help: ## Show this help message
@@ -89,3 +89,34 @@ clean: ## Clean cache files and build artifacts
 	find backend -type f -name "*.pyc" -delete 2>/dev/null || true
 	find backend -type f -name ".coverage" -delete 2>/dev/null || true
 	rm -rf frontend/dist frontend/node_modules/.vite 2>/dev/null || true
+
+# ============ Git Workflow Helpers ============
+pr-check: ## Run all checks before creating PR
+	@echo "Running PR readiness checks..."
+	@echo "1. Formatting code..."
+	@make format
+	@echo "2. Running linter..."
+	@make lint
+	@echo "3. Type checking..."
+	@make typecheck
+	@echo "4. Running tests..."
+	@make test
+	@echo ""
+	@echo "✅ All checks passed! Ready to create PR."
+
+branch-new: ## Create new feature branch (usage: make branch-new name=feature-name)
+	@if [ -z "$(name)" ]; then \
+		echo "Error: Please provide branch name. Usage: make branch-new name=feature-name"; \
+		exit 1; \
+	fi
+	@echo "Creating new feature branch: feat/$(name)"
+	@git checkout master
+	@git pull origin master
+	@git checkout -b feat/$(name)
+	@echo "✅ Branch feat/$(name) created and checked out"
+
+branch-sync: ## Sync current branch with master
+	@echo "Syncing with master..."
+	@git fetch origin
+	@git rebase origin/master
+	@echo "✅ Branch synced with master"
