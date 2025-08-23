@@ -198,6 +198,31 @@ Note: All POST endpoints require trailing slash to avoid 307 redirects.
 
 ## Git Workflow
 
-- Feature branches with `feat/` prefix
-- Rebase merges preferred (no merge commits)
-- Use GitHub issues for tracking major features
+**IMPORTANT**: Follow the feature branch workflow. Do not commit directly to master.
+
+### Branch Naming
+- `feat/` - New features
+- `fix/` - Bug fixes  
+- `refactor/` - Code refactoring
+- `docs/` - Documentation updates
+- `test/` - Test updates
+- `chore/` - Maintenance tasks
+
+### Workflow Steps
+1. Create feature branch from master: `git checkout -b feat/feature-name`
+2. Make changes and commit with conventional commit messages
+3. Push branch to remote: `git push -u origin feat/feature-name`
+4. Create pull request on GitHub
+5. After merge, delete feature branch
+
+### Commit Message Format
+```
+<type>(<scope>): <subject>
+```
+
+Examples:
+- `feat: Add account export functionality`
+- `fix(api): Correct balance calculation`
+- `docs: Update API documentation`
+
+See `docs/GIT_WORKFLOW.md` for detailed guidelines.
