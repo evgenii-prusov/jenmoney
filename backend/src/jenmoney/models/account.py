@@ -6,7 +6,7 @@ from sqlalchemy import Column, DateTime, Numeric, String, Text, Integer
 from jenmoney.database import Base
 
 
-class Account(Base):  # type: ignore[misc]
+class Account(Base):  # type: ignore[misc, valid-type]
     __tablename__ = "accounts"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)

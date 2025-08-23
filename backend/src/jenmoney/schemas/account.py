@@ -42,6 +42,9 @@ class AccountResponse(AccountBase):
 
     id: int
     balance: float
+    balance_in_default_currency: float | None = None
+    default_currency: Currency | None = None
+    exchange_rate_used: float | None = None
     description: str | None = None
     created_at: datetime
     updated_at: datetime
@@ -61,3 +64,11 @@ class AccountListResponse(BaseAPIModel):
     page: int = 1
     size: int = 10
     pages: int
+
+
+class TotalBalanceResponse(BaseAPIModel):
+    """Response for total balance calculation."""
+
+    total_balance: float
+    default_currency: Currency
+    currency_breakdown: dict[str, float]

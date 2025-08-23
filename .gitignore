@@ -121,3 +121,8 @@ out/
 
 # Documentation
 FRONTEND_EXPLAINED.md
+
+# Backup files
+backups/
+*.backup.json
+accounts_backup_*.json

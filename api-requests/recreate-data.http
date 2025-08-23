@@ -1,0 +1,183 @@
+### JenMoney Data Recreation Requests
+### Use this file with REST Client extension in VS Code
+### Base URL
+@baseUrl = http://localhost:8000/api/v1
+
+### 1. Create/Update User Settings (Default Currency: RUB)
+PATCH {{baseUrl}}/settings/
+Content-Type: application/json
+
+{
+  "default_currency": "RUB"
+}
+
+###
+
+### 2. Import Currency Rates
+POST {{baseUrl}}/currency-rates/import
+Content-Type: application/json
+
+{
+  "rates": [
+    {
+      "currency_from": "EUR",
+      "currency_to": "USD",
+      "rate": 1.0432,
+      "effective_from": "2025-01-23T00:00:00"
+    },
+    {
+      "currency_from": "RUB",
+      "currency_to": "USD",
+      "rate": 0.0097,
+      "effective_from": "2025-01-23T00:00:00"
+    },
+    {
+      "currency_from": "JPY",
+      "currency_to": "USD",
+      "rate": 0.0064,
+      "effective_from": "2025-01-23T00:00:00"
+    },
+    {
+      "currency_from": "USD",
+      "currency_to": "USD",
+      "rate": 1.0,
+      "effective_from": "2025-01-23T00:00:00"
+    }
+  ]
+}
+
+###
+
+### 3. Create Account: IBKR (USD)
+POST {{baseUrl}}/accounts/
+Content-Type: application/json
+
+{
+  "name": "IBKR",
+  "currency": "USD",
+  "balance": 10250.0
+}
+
+###
+
+### 4. Create Account: Revolute EUR
+POST {{baseUrl}}/accounts/
+Content-Type: application/json
+
+{
+  "name": "Revolute EUR",
+  "currency": "EUR",
+  "balance": 318.81
+}
+
+###
+
+### 5. Create Account: Sparkasse (EUR)
+POST {{baseUrl}}/accounts/
+Content-Type: application/json
+
+{
+  "name": "Sparkasse",
+  "currency": "EUR",
+  "balance": 2931.67
+}
+
+###
+
+### 6. Create Account: Сбербанк (RUB)
+POST {{baseUrl}}/accounts/
+Content-Type: application/json
+
+{
+  "name": "Сбербанк",
+  "currency": "RUB",
+  "balance": 25111.66
+}
+
+###
+
+### 7. Create Account: Т-Банк Андрей (RUB)
+POST {{baseUrl}}/accounts/
+Content-Type: application/json
+
+{
+  "name": "Т-Банк Андрей",
+  "currency": "RUB",
+  "balance": 526100.0
+}
+
+###
+
+### VERIFICATION QUERIES
+
+### Get All Accounts
+GET {{baseUrl}}/accounts/
+
+###
+
+### Get Total Balance
+GET {{baseUrl}}/accounts/total-balance/
+
+###
+
+### Get User Settings
+GET {{baseUrl}}/settings/
+
+###
+
+### Get Currency Rates
+GET {{baseUrl}}/currency-rates/
+
+###
+
+### UTILITY OPERATIONS
+
+### Change Default Currency to USD
+PATCH {{baseUrl}}/settings/
+Content-Type: application/json
+
+{
+  "default_currency": "USD"
+}
+
+###
+
+### Change Default Currency to EUR
+PATCH {{baseUrl}}/settings/
+Content-Type: application/json
+
+{
+  "default_currency": "EUR"
+}
+
+###
+
+### Update Account Balance Example (replace {id} with actual account ID)
+PATCH {{baseUrl}}/accounts/1
+Content-Type: application/json
+
+{
+  "balance": 11000.0
+}
+
+###
+
+### Delete Account Example (replace {id} with actual account ID)
+DELETE {{baseUrl}}/accounts/1
+
+###
+
+### SUMMARY OF ACCOUNTS AS OF 2025-08-23
+# Account Name        | Currency | Balance
+# -------------------|----------|------------
+# IBKR               | USD      | 10,250.00
+# Revolute EUR       | EUR      | 318.81
+# Sparkasse          | EUR      | 2,931.67
+# Сбербанк           | RUB      | 25,111.66
+# Т-Банк Андрей      | RUB      | 526,100.00
+#
+# Total Portfolio Value (in RUB): 1,957,590.09
+# Exchange Rates Used:
+# - EUR to USD: 1.0432
+# - RUB to USD: 0.0097
+# - JPY to USD: 0.0064

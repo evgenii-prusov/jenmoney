@@ -5,6 +5,21 @@
 - [Git Workflow Guide](./GIT_WORKFLOW.md) - Complete guide for using feature branches and pull requests
 - Branch protection setup (see below)
 
+## Features
+
+### Multi-Currency Support
+The application now includes comprehensive multi-currency support with:
+- **Multiple Currencies**: Support for EUR, USD, RUB, and JPY
+- **Automatic Conversion**: Real-time conversion between currencies based on exchange rates
+- **User Preferences**: Set your preferred default currency for display
+- **Portfolio Overview**: View total portfolio value across all currencies
+- **Exchange Rate Management**: Import rates via CSV/JSON or manage manually
+
+#### How to Use
+1. **Set Default Currency**: Click the settings icon to choose your preferred currency
+2. **View Conversions**: Account cards show both original and converted balances
+3. **Update Exchange Rates**: Import new rates via the API or update `backend/data/currency_rates.csv`
+
 ## Setting Up Branch Protection (GitHub)
 
 To protect the `master` branch from direct commits, configure these settings in your GitHub repository:
