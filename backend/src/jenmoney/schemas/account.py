@@ -42,6 +42,7 @@ class AccountResponse(AccountBase):
 
     id: int
     balance: float
+    percentage_of_total: float | None = None
     balance_in_default_currency: float | None = None
     default_currency: Currency | None = None
     exchange_rate_used: float | None = None
