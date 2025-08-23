@@ -5,6 +5,9 @@ import { CssBaseline } from '@mui/material';
 import { SnackbarProvider } from 'notistack';
 import { AppLayout } from './layouts/AppLayout';
 import { AccountsPage } from './features/accounts/AccountsPage';
+// import { AccountsPageSafe as AccountsPage } from './features/accounts/AccountsPageSafe';
+// import { AccountsPageDebug as AccountsPage } from './features/accounts/AccountsPageDebug';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { theme } from './theme/solarizedLight';
 
 const queryClient = new QueryClient({
@@ -29,9 +32,11 @@ function App() {
           }}
           autoHideDuration={3000}
         >
-          <AppLayout>
-            <AccountsPage />
-          </AppLayout>
+          <ErrorBoundary>
+            <AppLayout>
+              <AccountsPage />
+            </AppLayout>
+          </ErrorBoundary>
         </SnackbarProvider>
       </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />

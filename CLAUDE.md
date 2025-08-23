@@ -54,6 +54,14 @@ make dev
 make stop-all
 ```
 
+**IMPORTANT: Server Management Rules**
+- ALWAYS check if servers are already running before starting them
+- Use `make stop-all` to stop all servers before starting new ones
+- Use `make clean-ports` if ports are stuck
+- NEVER start servers directly with `uv run` or `npm run` - ALWAYS use Makefile commands
+- NEVER use `npm run dev`, `npm run build`, etc. - ALWAYS use `make dev-frontend`, `make dev-backend`, etc.
+- The `make dev` command is smart and checks if servers are already running
+
 ### Development Servers
 ```bash
 make dev           # Start both frontend and backend (smart - checks if already running)
@@ -64,11 +72,17 @@ make clean-ports   # Force kill processes on ports 8000 and 5173
 ```
 
 ### Code Quality (Pre-commit integrated)
+
+**IMPORTANT: Always use Makefile commands for code quality checks**
+- NEVER run `ruff`, `mypy`, `pytest` directly
+- ALWAYS use the Makefile commands below:
+
 ```bash
 make lint          # Run ruff linter on backend code
-make format        # Format backend code with ruff
+make format        # Format backend code with ruff (auto-fixes issues)
 make typecheck     # Run type checking with mypy
 make test          # Run backend tests with pytest
+make pr-check      # Run all checks before creating a PR
 
 # Note: format-check and other checks are handled by pre-commit hooks
 ```
@@ -166,15 +180,48 @@ Environment variables are centralized in the project root:
 5. **Card Layout**: Accounts displayed as cards, not tables
 6. **No Authentication**: Currently no auth implementation (planned for future)
 
+## Multicurrency Support
+
+The application supports multiple currencies (EUR, USD, RUB, JPY) with automatic conversion:
+
+### Features
+- **Currency Conversion**: Accounts show both original and converted balances
+- **Default Currency**: Users can set their preferred display currency
+- **Exchange Rates**: Manual management via CSV/JSON import
+- **Total Portfolio Value**: Calculated across all accounts in default currency
+
+### Exchange Rate Management
+- Rates stored in `backend/data/currency_rates.csv`
+- All rates are stored as conversions to USD
+- Cross-currency conversion goes through USD (e.g., EUR→RUB = EUR→USD→RUB)
+- Import rates via API endpoints or directly update CSV file
+
+### Database Tables
+- `accounts`: Financial accounts with currency field
+- `currency_rates`: Exchange rates with effective dates
+- `user_settings`: User preferences including default currency
+
 ## API Endpoints
 
 Base URL: `http://localhost:8000/api/v1`
 
-- `GET /accounts/` - List all accounts (paginated)
+### Accounts
+- `GET /accounts/` - List all accounts (paginated, with currency conversion)
 - `POST /accounts/` - Create new account
 - `GET /accounts/{id}` - Get specific account
 - `PATCH /accounts/{id}` - Update account
 - `DELETE /accounts/{id}` - Delete account
+- `GET /accounts/total-balance/` - Get total portfolio value in default currency
+
+### Settings
+- `GET /settings/` - Get user settings (including default currency)
+- `PATCH /settings/` - Update user settings
+
+### Currency Rates
+- `GET /currency-rates/` - List all exchange rates
+- `GET /currency-rates/current` - Get current exchange rates to USD
+- `POST /currency-rates/import/csv` - Import rates from CSV file
+- `POST /currency-rates/import/json` - Import rates from JSON file
 
 Note: All POST endpoints require trailing slash to avoid 307 redirects.
 
@@ -199,6 +246,13 @@ Note: All POST endpoints require trailing slash to avoid 307 redirects.
 ## Git Workflow
 
 **IMPORTANT**: Follow the feature branch workflow. Do not commit directly to master.
+
+**ALWAYS CREATE A FEATURE BRANCH BEFORE STARTING WORK**:
+Use `make branch-new name=<feature-name>` to create and switch to a new feature branch.
+This command will automatically:
+- Create a branch with the correct naming convention (feat/, fix/, etc.)
+- Sync with the latest master
+- Switch to the new branch
 
 ### Branch Naming
 - `feat/` - New features

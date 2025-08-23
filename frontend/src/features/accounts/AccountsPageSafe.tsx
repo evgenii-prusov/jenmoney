@@ -7,40 +7,30 @@ import {
   Alert,
   Skeleton,
   Paper,
-  IconButton,
-  Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import SettingsIcon from '@mui/icons-material/Settings';
 import { AccountCard } from '../../components/AccountCard';
 import { AccountForm } from '../../components/AccountForm';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { SettingsDialog } from '../../components/SettingsDialog';
-import { TotalBalance } from '../../components/TotalBalance';
 import {
   useAccountsWithToast,
   useCreateAccountWithToast,
   useUpdateAccountWithToast,
   useDeleteAccountWithToast,
 } from '../../hooks/useAccountsWithToast';
-import { useSettings, useUpdateSettings, useTotalBalance } from '../../hooks/useSettings';
-import type { Account, AccountCreate, AccountUpdate, Currency } from '../../types/account';
+import type { Account, AccountCreate, AccountUpdate } from '../../types/account';
 
-export const AccountsPage: React.FC = () => {
+export const AccountsPageSafe: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { data, isLoading, error } = useAccountsWithToast();
   const createMutation = useCreateAccountWithToast();
   const updateMutation = useUpdateAccountWithToast();
   const deleteMutation = useDeleteAccountWithToast();
-  const { data: settings } = useSettings();
-  const updateSettings = useUpdateSettings();
-  const { data: totalBalanceData, isLoading: totalBalanceLoading } = useTotalBalance();
 
   const handleCreateClick = () => {
     setFormMode('create');
@@ -82,11 +72,6 @@ export const AccountsPage: React.FC = () => {
     }
   };
 
-  const handleSettingsSave = async (currency: Currency) => {
-    await updateSettings.mutateAsync({ default_currency: currency });
-  };
-
-
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
@@ -99,28 +84,14 @@ export const AccountsPage: React.FC = () => {
 
   return (
     <Box>
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600 }}>
-            My Accounts
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage your financial accounts and track balances
-          </Typography>
-        </Box>
-        <Tooltip title="Settings">
-          <IconButton
-            onClick={() => setSettingsOpen(true)}
-            sx={{ ml: 2 }}
-          >
-            <SettingsIcon />
-          </IconButton>
-        </Tooltip>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600 }}>
+          My Accounts (Safe Version - No Settings)
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Manage your financial accounts and track balances
+        </Typography>
       </Box>
-
-      {!isLoading && data && data.items.length > 0 && (
-        <TotalBalance data={totalBalanceData} loading={totalBalanceLoading} />
-      )}
 
       <Grid container spacing={3}>
         {isLoading ? (
@@ -205,16 +176,8 @@ export const AccountsPage: React.FC = () => {
         }}
         isDestructive
       />
-
-      {/* Settings Dialog */}
-      <SettingsDialog
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        settings={settings}
-        onSave={handleSettingsSave}
-      />
     </Box>
   );
 };
 
-export default AccountsPage;
+export default AccountsPageSafe;

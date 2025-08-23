@@ -90,12 +90,36 @@ export const AccountCard: React.FC<AccountCardProps> = ({
           color="primary"
           sx={{
             fontWeight: 700,
-            mb: 2,
+            mb: account.balance_in_default_currency ? 1 : 2,
             letterSpacing: '-0.5px',
           }}
         >
           {formatBalance(account.balance, account.currency)}
         </Typography>
+
+        {account.balance_in_default_currency && account.default_currency && (
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            sx={{
+              mb: 2,
+              fontSize: '0.95rem',
+            }}
+          >
+            ≈ {formatBalance(account.balance_in_default_currency, account.default_currency)}
+            {account.exchange_rate_used && (
+              <Tooltip title={`Exchange rate: 1 ${account.currency} = ${account.exchange_rate_used.toFixed(4)} ${account.default_currency}`}>
+                <Typography
+                  component="span"
+                  variant="caption"
+                  sx={{ ml: 1, color: 'text.disabled' }}
+                >
+                  @ {account.exchange_rate_used.toFixed(4)}
+                </Typography>
+              </Tooltip>
+            )}
+          </Typography>
+        )}
 
         {account.description && (
           <Typography
