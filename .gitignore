@@ -129,3 +129,6 @@ accounts_backup_*.json
 
 # Playwright screenshots
 .playwright-mcp/
+
+# API requests with sensitive data
+api-requests/
