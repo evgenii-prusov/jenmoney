@@ -1,5 +1,6 @@
 from decimal import Decimal
 from typing import Any
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -8,6 +9,7 @@ from jenmoney import crud, schemas
 from jenmoney.crud.user_settings import user_settings
 from jenmoney.database import get_db
 from jenmoney.services.currency_service import CurrencyService
+from jenmoney.services.account_analytics_service import AccountAnalyticService
 
 router = APIRouter()
 
@@ -55,7 +57,15 @@ def create_account(
     account_in: schemas.AccountCreate,
 ) -> Any:
     account = crud.account.create(db=db, obj_in=account_in)
-    return enrich_account_with_conversion(account, db)
+    enriched_account = enrich_account_with_conversion(account, db)
+
+    # Add percentage calculation
+    account_analytics_service = AccountAnalyticService()
+    enriched_account["percentage_of_total"] = account_analytics_service.get_account_percentage(
+        db, cast(int, account.id)
+    )
+
+    return enriched_account
 
 
 @router.get("/", response_model=schemas.AccountListResponse)
@@ -69,6 +79,12 @@ def read_accounts(
 
     enriched_accounts = [enrich_account_with_conversion(account, db) for account in accounts]
 
+    account_analytics_service = AccountAnalyticService()
+    for enriched_account in enriched_accounts:
+        enriched_account["percentage_of_total"] = account_analytics_service.get_account_percentage(
+            db, cast(int, enriched_account["id"])
+        )
+
     return {
         "items": enriched_accounts,
         "total": total,
@@ -81,9 +97,15 @@ def read_accounts(
 @router.get("/{account_id}", response_model=schemas.AccountResponse)
 def read_account(*, db: Session = Depends(get_db), account_id: int) -> Any:
     account = crud.account.get(db=db, id=account_id)
+    account_analytics_service = AccountAnalyticService()
+
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
-    return enrich_account_with_conversion(account, db)
+    enriched_account = enrich_account_with_conversion(account, db)
+    enriched_account["percentage_of_total"] = account_analytics_service.get_account_percentage(
+        db, account_id
+    )
+    return enriched_account
 
 
 @router.patch("/{account_id}", response_model=schemas.AccountResponse)
@@ -97,7 +119,15 @@ def update_account(
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
     account = crud.account.update(db=db, db_obj=account, obj_in=account_in)
-    return enrich_account_with_conversion(account, db)
+    enriched_account = enrich_account_with_conversion(account, db)
+
+    # Add percentage calculation
+    account_analytics_service = AccountAnalyticService()
+    enriched_account["percentage_of_total"] = account_analytics_service.get_account_percentage(
+        db, account_id
+    )
+
+    return enriched_account
 
 
 @router.delete("/{account_id}", response_model=schemas.AccountResponse)
@@ -105,8 +135,16 @@ def delete_account(*, db: Session = Depends(get_db), account_id: int) -> Any:
     account = crud.account.get(db=db, id=account_id)
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
+
+    # Calculate percentage before deletion
+    account_analytics_service = AccountAnalyticService()
+    percentage = account_analytics_service.get_account_percentage(db, account_id)
+
     account = crud.account.delete(db=db, id=account_id)
-    return enrich_account_with_conversion(account, db)
+    enriched_account = enrich_account_with_conversion(account, db)
+    enriched_account["percentage_of_total"] = percentage
+
+    return enriched_account
 
 
 @router.get("/total-balance/", response_model=schemas.TotalBalanceResponse)
