@@ -6,7 +6,6 @@ import { Currency } from '../types/account';
 interface TotalBalanceType {
   total_balance: number;
   default_currency: Currency;
-  currency_breakdown: Record<string, number>;
 }
 
 interface TotalBalanceProps {
@@ -51,29 +50,13 @@ export const TotalBalance: React.FC<TotalBalanceProps> = ({ data, loading }) => 
     <Paper sx={{ p: 3, mb: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6" color="text.secondary">
-          Total Portfolio Value
+          Всего Деняк
         </Typography>
-        <Chip 
-          label={data.default_currency} 
-          color="primary" 
-          size="small"
-        />
+        <Chip label={data.default_currency} color="primary" size="small"/>
       </Box>
       <Typography variant="h3" color="primary" sx={{ fontWeight: 700, mb: 2 }}>
         {formatBalance(data.total_balance, data.default_currency)}
       </Typography>
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        {Object.entries(data.currency_breakdown).map(([currency, amount]) => (
-          <Box key={currency} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              {currency}:
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {formatBalance(amount, currency as Currency)}
-            </Typography>
-          </Box>
-        ))}
-      </Box>
     </Paper>
   );
 };

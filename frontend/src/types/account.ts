@@ -62,5 +62,4 @@ export interface UserSettingsUpdate {
 export interface TotalBalance {
   total_balance: number;
   default_currency: Currency;
-  currency_breakdown: Record<string, number>;
 }
