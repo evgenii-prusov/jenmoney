@@ -126,3 +126,6 @@ FRONTEND_EXPLAINED.md
 backups/
 *.backup.json
 accounts_backup_*.json
+
+# Playwright screenshots
+.playwright-mcp/
