@@ -50,47 +50,53 @@ make setup
 # Start both backend and frontend development servers
 make dev
 
-# Start individual servers
-make dev-backend   # Backend on http://localhost:8000
-make dev-frontend  # Frontend on http://localhost:5173
+# Stop all servers
+make stop-all
 ```
 
-### Backend Commands
+### Development Servers
 ```bash
-# Code quality
-make lint          # Run ruff linter on backend/src/
+make dev           # Start both frontend and backend (smart - checks if already running)
+make dev-backend   # Start backend only on http://localhost:8000
+make dev-frontend  # Start frontend only on http://localhost:5173
+make stop-all      # Stop all development servers
+make clean-ports   # Force kill processes on ports 8000 and 5173
+```
+
+### Code Quality (Pre-commit integrated)
+```bash
+make lint          # Run ruff linter on backend code
 make format        # Format backend code with ruff
-make format-check  # Check formatting without modifying
-make typecheck     # Run mypy type checker
-make check         # Run all checks (lint + format-check + typecheck)
+make typecheck     # Run type checking with mypy
+make test          # Run backend tests with pytest
 
-# Testing
-make test          # Run all tests with verbose output
-make test-cov      # Run tests with coverage report
-make test-fast     # Run tests without verbose output
-
-# Database
-make db-init       # Initialize SQLite database
-make db-clean      # Remove database file
+# Note: format-check and other checks are handled by pre-commit hooks
 ```
 
-### Frontend Commands
+### Database Management
 ```bash
-# Build production assets
-make build-frontend
+make db-init       # Initialize SQLite database
+make db-clean      # Delete database file (data loss warning!)
+```
 
-# Development (from frontend directory)
+### Setup & Installation
+```bash
+make setup            # Complete project setup (deps + database)
+make install-backend  # Install Python dependencies with uv
+make install-frontend # Install Node dependencies with npm
+```
+
+### Cleanup
+```bash
+make clean         # Clean cache files and build artifacts
+```
+
+### Frontend Commands (Direct npm)
+```bash
+# Run from frontend directory
 npm run dev        # Start dev server
 npm run build      # Build for production
 npm run preview    # Preview production build
-```
-
-### Utility Commands
-```bash
-make stop-all      # Stop all development servers
-make clean         # Clean cache and build files
-make clean-all     # Deep clean including node_modules and venv
-make reset         # Full reset (clean + setup)
 ```
 
 ## Architecture
@@ -178,9 +184,11 @@ Note: All POST endpoints require trailing slash to avoid 307 redirects.
 
 2. **Frontend env variables not loading**: Check that `vite.config.ts` has `envDir: resolve(__dirname, '..')` 
 
-3. **Port already in use**: Use `make stop-all` to kill all servers
+3. **Port already in use**: Use `make stop-all` to kill all servers, or `make clean-ports` for force kill
 
 4. **TypeScript errors in vite.config**: Install `@types/node` as dev dependency
+
+5. **Servers already running**: The improved `make dev` command now checks if servers are already running and skips starting them again
 
 ## Testing Approach
 
@@ -192,5 +200,4 @@ Note: All POST endpoints require trailing slash to avoid 307 redirects.
 
 - Feature branches with `feat/` prefix
 - Rebase merges preferred (no merge commits)
-- Commits should include "🤖 Generated with [Claude Code]" when appropriate
 - Use GitHub issues for tracking major features
