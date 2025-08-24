@@ -5,6 +5,12 @@ from jenmoney.schemas.account import (
     AccountUpdate,
     TotalBalanceResponse,
 )
+from jenmoney.schemas.category import (
+    CategoryCreate,
+    CategoryListResponse,
+    CategoryResponse,
+    CategoryUpdate,
+)
 from jenmoney.schemas.currency_rate import (
     CurrencyRateCreate,
     CurrencyRateImport,
@@ -29,6 +35,10 @@ __all__ = [
     "AccountResponse",
     "AccountListResponse",
     "TotalBalanceResponse",
+    "CategoryCreate",
+    "CategoryUpdate",
+    "CategoryResponse",
+    "CategoryListResponse",
     "CurrencyRateCreate",
     "CurrencyRateUpdate",
     "CurrencyRateResponse",
