@@ -1,19 +1,19 @@
-name: Copilot Setup Steps
+name: "Copilot Setup Steps"
 
 on:
-  workflow_call:
-
-permissions:
-  contents: read
-
-concurrency:
-  group: copilot-setup-${{ github.ref }}
-  cancel-in-progress: false
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
 
 jobs:
-  setup-environment:
-    name: Prepare Copilot Dev Environment
+  copilot-setup-steps:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
