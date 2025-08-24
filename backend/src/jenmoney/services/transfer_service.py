@@ -6,27 +6,14 @@ from typing import Tuple
 from sqlalchemy.orm import Session
 
 from jenmoney import crud, models
-from jenmoney.exceptions import CurrencyConversionError
+from jenmoney.exceptions import (
+    CurrencyConversionError,
+    TransferValidationError,
+    InsufficientFundsError,
+    InvalidAccountError,
+)
 from jenmoney.schemas.transfer import TransferCreate
 from jenmoney.services.currency_service import CurrencyService
-
-
-class TransferValidationError(Exception):
-    """Raised when transfer validation fails."""
-
-    pass
-
-
-class InsufficientFundsError(TransferValidationError):
-    """Raised when source account has insufficient funds."""
-
-    pass
-
-
-class InvalidAccountError(TransferValidationError):
-    """Raised when account does not exist or is invalid."""
-
-    pass
 
 
 class TransferService:
@@ -87,7 +74,6 @@ class TransferService:
                 "to_currency": to_account.currency,
                 "exchange_rate": exchange_rate,
                 "description": transfer_in.description,
-                "status": "completed",
             }
 
             # Create the transfer (but don't commit yet)

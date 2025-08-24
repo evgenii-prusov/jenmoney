@@ -1,18 +1,10 @@
 from datetime import datetime
-from enum import Enum
 from typing import Annotated, Any
 
 from pydantic import Field, model_validator
 
 from jenmoney.schemas.base import BaseAPIModel
 from jenmoney.schemas.account import Currency
-
-
-class TransferStatus(str, Enum):
-    PENDING = "pending"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
 
 
 class TransferBase(BaseAPIModel):
@@ -47,7 +39,6 @@ class TransferCreate(TransferBase):
 class TransferUpdate(BaseAPIModel):
     """Model for updating a transfer."""
 
-    status: TransferStatus | None = None
     description: str | None = None
 
 
@@ -59,7 +50,6 @@ class TransferResponse(TransferBase):
     from_currency: Currency
     to_currency: Currency
     exchange_rate: float | None = None
-    status: TransferStatus
     created_at: datetime
     updated_at: datetime
 

@@ -33,9 +33,6 @@ class Transfer(Base):  # type: ignore[misc, valid-type]
     # Optional description
     description = Column(Text, nullable=True)
 
-    # Status of the transfer
-    status = Column(String(20), nullable=False, default="completed")
-
     # Timestamps
     created_at = Column(
         DateTime,

@@ -87,8 +87,7 @@ def sample_transfers(db_session: Session, sample_accounts):
         to_amount=Decimal("100.00"),
         to_currency="EUR",
         exchange_rate=None,
-        description="Test transfer 1",
-        status="completed"
+        description="Test transfer 1"
     )
     
     transfer_2 = models.Transfer(
@@ -99,8 +98,7 @@ def sample_transfers(db_session: Session, sample_accounts):
         to_amount=Decimal("50.00"),
         to_currency="EUR",
         exchange_rate=None,
-        description="Test transfer 2",
-        status="completed"
+        description="Test transfer 2"
     )
     
     db_session.add(transfer_1)
