@@ -34,6 +34,6 @@ def get_db() -> Generator[Session, None, None]:
 
 def init_db() -> None:
     # Import all models to register them with Base.metadata
-    from jenmoney.models import Account, CurrencyRate, UserSettings  # noqa: F401
+    from jenmoney.models import Account, CurrencyRate, Transfer, UserSettings  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
