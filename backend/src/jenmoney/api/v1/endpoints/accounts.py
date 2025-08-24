@@ -81,20 +81,13 @@ def delete_account(*, db: Session = Depends(get_db), account_id: int) -> Any:
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
 
-    # Calculate percentage before deletion
-    enrichment_service = AccountEnrichmentService(db)
-    percentage = enrichment_service.get_account_percentage(account_id)
-
     deleted_account = crud.account.delete(db=db, id=account_id)
 
     # Since we verified the account exists before deletion, it should never be None
     if not deleted_account:
         raise HTTPException(status_code=500, detail="Failed to delete account")
 
-    enriched_account = enrichment_service.enrich_account_with_conversion(deleted_account)
-    enriched_account["percentage_of_total"] = percentage
-
-    return enriched_account
+    return deleted_account
 
 
 @router.get("/total-balance/", response_model=schemas.TotalBalanceResponse)
