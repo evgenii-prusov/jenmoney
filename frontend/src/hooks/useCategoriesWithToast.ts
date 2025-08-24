@@ -7,8 +7,8 @@ import {
 } from './useCategories';
 import type { CategoryCreate, CategoryUpdate } from '../types/category';
 
-export const useCategoriesWithToast = () => {
-  return useCategories();
+export const useCategoriesWithToast = (hierarchical?: boolean) => {
+  return useCategories(hierarchical);
 };
 
 export const useCreateCategoryWithToast = () => {

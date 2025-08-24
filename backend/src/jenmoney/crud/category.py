@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from jenmoney.models.category import Category
 from jenmoney.schemas.category import CategoryCreate, CategoryUpdate
@@ -13,13 +13,39 @@ class CRUDCategory:
         return db_obj
 
     def get(self, db: Session, id: int) -> Category | None:
-        return db.query(Category).filter(Category.id == id).first()
+        return (
+            db.query(Category)
+            .options(joinedload(Category.children))
+            .filter(Category.id == id)
+            .first()
+        )
 
     def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> list[Category]:
-        return db.query(Category).offset(skip).limit(limit).all()
+        return (
+            db.query(Category)
+            .options(joinedload(Category.children))
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def get_root_categories(self, db: Session, *, skip: int = 0, limit: int = 100) -> list[Category]:
+        """Get only root categories (categories with no parent) with their children."""
+        return (
+            db.query(Category)
+            .options(joinedload(Category.children))
+            .filter(Category.parent_id.is_(None))
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def count(self, db: Session) -> int:
         return db.query(Category).count()
+
+    def count_root_categories(self, db: Session) -> int:
+        """Count only root categories (categories with no parent)."""
+        return db.query(Category).filter(Category.parent_id.is_(None)).count()
 
     def update(self, db: Session, *, db_obj: Category, obj_in: CategoryUpdate) -> Category:
         update_data = obj_in.model_dump(exclude_unset=True)
@@ -36,6 +62,10 @@ class CRUDCategory:
             db.delete(obj)
             db.commit()
         return obj
+
+    def get_children(self, db: Session, parent_id: int) -> list[Category]:
+        """Get all children of a specific category."""
+        return db.query(Category).filter(Category.parent_id == parent_id).all()
 
 
 category = CRUDCategory()

@@ -26,6 +26,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight';
 import { Currency } from '../types/account';
 import { CategoryForm } from './CategoryForm';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -74,6 +75,70 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+// Helper function to render categories hierarchically
+const CategoryListItem: React.FC<{
+  category: Category;
+  onEdit: (category: Category) => void;
+  onDelete: (category: Category) => void;
+  isChild?: boolean;
+}> = ({ category, onEdit, onDelete, isChild = false }) => (
+  <ListItem 
+    key={category.id} 
+    divider
+    sx={{ 
+      pl: isChild ? 6 : 2,
+      borderLeft: isChild ? '2px solid #e0e0e0' : 'none',
+      ml: isChild ? 2 : 0,
+    }}
+  >
+    {isChild && (
+      <SubdirectoryArrowRightIcon 
+        sx={{ 
+          mr: 1, 
+          color: 'text.secondary',
+          fontSize: '1rem',
+        }} 
+      />
+    )}
+    <ListItemText
+      primary={category.name}
+      secondary={category.description || 'No description'}
+      sx={{
+        '& .MuiListItemText-primary': {
+          fontSize: isChild ? '0.9rem' : '1rem',
+          fontWeight: isChild ? 400 : 500,
+        },
+        '& .MuiListItemText-secondary': {
+          fontSize: isChild ? '0.8rem' : '0.875rem',
+        },
+      }}
+    />
+    <ListItemSecondaryAction>
+      <Tooltip title="Edit">
+        <IconButton
+          edge="end"
+          aria-label="edit"
+          onClick={() => onEdit(category)}
+          sx={{ mr: 1 }}
+          size={isChild ? 'small' : 'medium'}
+        >
+          <EditIcon fontSize={isChild ? 'small' : 'medium'} />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Delete">
+        <IconButton
+          edge="end"
+          aria-label="delete"
+          onClick={() => onDelete(category)}
+          size={isChild ? 'small' : 'medium'}
+        >
+          <DeleteIcon fontSize={isChild ? 'small' : 'medium'} />
+        </IconButton>
+      </Tooltip>
+    </ListItemSecondaryAction>
+  </ListItem>
+);
+
 export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   open,
   onClose,
@@ -90,8 +155,8 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
-  // Category hooks
-  const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useCategoriesWithToast();
+  // Category hooks - use hierarchical view
+  const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useCategoriesWithToast(true);
   const createCategoryMutation = useCreateCategoryWithToast();
   const updateCategoryMutation = useUpdateCategoryWithToast();
   const deleteCategoryMutation = useDeleteCategoryWithToast();
@@ -107,7 +172,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     onClose();
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
@@ -149,6 +214,16 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     }
   };
 
+  // Flatten all categories for form selection
+  const flatCategories = categoriesData?.items ? 
+    categoriesData.items.reduce<Category[]>((acc, category) => {
+      acc.push(category);
+      if (category.children) {
+        acc.push(...category.children);
+      }
+      return acc;
+    }, []) : [];
+
   return (
     <>
       <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -181,7 +256,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
           <TabPanel value={tabValue} index={1}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="body2" color="text.secondary">
-                Manage your expense and income categories.
+                Manage your expense and income categories. Create hierarchical categories with parent and child levels.
               </Typography>
               <Button
                 variant="outlined"
@@ -199,7 +274,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
               </Alert>
             )}
 
-            <Paper variant="outlined" sx={{ maxHeight: 300, overflow: 'auto' }}>
+            <Paper variant="outlined" sx={{ maxHeight: 400, overflow: 'auto' }}>
               {categoriesLoading ? (
                 <List>
                   {[1, 2, 3].map((i) => (
@@ -209,35 +284,24 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                   ))}
                 </List>
               ) : categoriesData && categoriesData.items.length > 0 ? (
-                <List>
+                <List disablePadding>
                   {categoriesData.items.map((category) => (
-                    <ListItem key={category.id} divider>
-                      <ListItemText
-                        primary={category.name}
-                        secondary={category.description || 'No description'}
+                    <React.Fragment key={category.id}>
+                      <CategoryListItem
+                        category={category}
+                        onEdit={handleEditCategory}
+                        onDelete={handleDeleteClick}
                       />
-                      <ListItemSecondaryAction>
-                        <Tooltip title="Edit">
-                          <IconButton
-                            edge="end"
-                            aria-label="edit"
-                            onClick={() => handleEditCategory(category)}
-                            sx={{ mr: 1 }}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton
-                            edge="end"
-                            aria-label="delete"
-                            onClick={() => handleDeleteClick(category)}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </ListItemSecondaryAction>
-                    </ListItem>
+                      {category.children?.map((child) => (
+                        <CategoryListItem
+                          key={child.id}
+                          category={child}
+                          onEdit={handleEditCategory}
+                          onDelete={handleDeleteClick}
+                          isChild
+                        />
+                      ))}
+                    </React.Fragment>
                   ))}
                 </List>
               ) : (
@@ -266,14 +330,20 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
         onSubmit={handleCategoryFormSubmit}
         category={selectedCategory}
         mode={categoryFormMode}
+        availableCategories={flatCategories}
       />
 
       <ConfirmDialog
         open={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
+        onCancel={() => setDeleteDialogOpen(false)}
         onConfirm={handleDeleteConfirm}
         title="Delete Category"
-        message={`Are you sure you want to delete "${categoryToDelete?.name}"? This action cannot be undone.`}
+        message={
+          categoryToDelete?.children && categoryToDelete.children.length > 0
+            ? `Are you sure you want to delete "${categoryToDelete?.name}" and all its ${categoryToDelete.children.length} subcategories? This action cannot be undone.`
+            : `Are you sure you want to delete "${categoryToDelete?.name}"? This action cannot be undone.`
+        }
+        isDestructive
       />
     </>
   );

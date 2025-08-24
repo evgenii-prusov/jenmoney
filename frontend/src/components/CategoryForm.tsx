@@ -8,6 +8,11 @@ import {
   Button,
   Box,
   Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Typography,
 } from '@mui/material';
 import type { Category, CategoryCreate, CategoryUpdate } from '../types/category';
 
@@ -17,6 +22,7 @@ interface CategoryFormProps {
   onSubmit: (data: CategoryCreate | CategoryUpdate) => Promise<void>;
   category?: Category | null;
   mode: 'create' | 'edit';
+  availableCategories?: Category[];
 }
 
 export const CategoryForm: React.FC<CategoryFormProps> = ({
@@ -25,25 +31,34 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
   onSubmit,
   category,
   mode,
+  availableCategories = [],
 }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    parent_id: undefined as number | undefined,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Get only parent categories (categories with no parent_id) for selection
+  const parentCategories = availableCategories.filter(cat => 
+    !cat.parent_id && (!category || cat.id !== category.id)
+  );
 
   useEffect(() => {
     if (category && mode === 'edit') {
       setFormData({
         name: category.name,
         description: category.description || '',
+        parent_id: category.parent_id,
       });
     } else if (mode === 'create') {
       setFormData({
         name: '',
         description: '',
+        parent_id: undefined,
       });
     }
     setErrors({});
@@ -77,6 +92,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
       const submitData = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
+        parent_id: formData.parent_id || undefined,
       };
 
       await onSubmit(submitData);
@@ -102,6 +118,13 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
         [field]: '',
       }));
     }
+  };
+
+  const handleParentChange = (value: number | '') => {
+    setFormData(prev => ({
+      ...prev,
+      parent_id: value === '' ? undefined : value,
+    }));
   };
 
   return (
@@ -138,6 +161,27 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
               disabled={isSubmitting}
               sx={{ mt: 1 }}
             />
+
+            <FormControl fullWidth disabled={isSubmitting}>
+              <InputLabel>Parent Category (Optional)</InputLabel>
+              <Select
+                value={formData.parent_id || ''}
+                onChange={(e) => handleParentChange(e.target.value as number | '')}
+                label="Parent Category (Optional)"
+              >
+                <MenuItem value="">
+                  <em>None - Make this a top-level category</em>
+                </MenuItem>
+                {parentCategories.map((cat) => (
+                  <MenuItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, px: 1 }}>
+                Select a parent category to create a subcategory. Only 2 levels are supported.
+              </Typography>
+            </FormControl>
 
             <TextField
               label="Description"

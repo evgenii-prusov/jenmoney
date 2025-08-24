@@ -9,8 +9,14 @@ import type {
 const CATEGORIES_ENDPOINT = '/categories/';
 
 export const categoriesApi = {
-  getCategories: async (): Promise<CategoryListResponse> => {
-    const { data } = await apiClient.get<CategoryListResponse>(CATEGORIES_ENDPOINT);
+  getCategories: async (hierarchical?: boolean): Promise<CategoryListResponse> => {
+    const params = hierarchical ? { hierarchical: true } : {};
+    const { data } = await apiClient.get<CategoryListResponse>(CATEGORIES_ENDPOINT, { params });
+    return data;
+  },
+
+  getCategoriesHierarchy: async (): Promise<Category[]> => {
+    const { data } = await apiClient.get<Category[]>(`${CATEGORIES_ENDPOINT}hierarchy`);
     return data;
   },
 
