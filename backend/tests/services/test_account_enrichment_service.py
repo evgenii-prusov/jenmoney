@@ -1,9 +1,11 @@
 from decimal import Decimal
 from unittest.mock import Mock, patch
 from datetime import datetime, timezone
+import pytest
 
 from sqlalchemy.orm import Session
 
+from jenmoney.exceptions import CurrencyConversionError, ExchangeRateNotFoundError
 from jenmoney.models.account import Account
 from jenmoney.services.account_enrichment_service import AccountEnrichmentService
 
@@ -104,19 +106,22 @@ class TestAccountEnrichmentService:
             mock_settings.default_currency = "EUR"
             mock_user_settings.get_or_create.return_value = mock_settings
 
-            # Mock currency service to raise exception
-            service.currency_service.get_current_rate = Mock(side_effect=Exception("Conversion failed"))
+            # Mock currency service to raise ExchangeRateNotFoundError
+            service.currency_service.get_current_rate = Mock(
+                side_effect=ExchangeRateNotFoundError("JPY", "EUR")
+            )
 
-            result = service.enrich_account_with_conversion(account)
-
-            assert result["id"] == 1
-            assert result["name"] == "JPY Account"
-            assert result["currency"] == "JPY"
-            assert result["balance"] == 100000.00
-            assert result["description"] == "JPY test account"
-            assert result["default_currency"] == "EUR"
-            assert result["balance_in_default_currency"] is None
-            assert result["exchange_rate_used"] is None
+            # Should raise CurrencyConversionError with context
+            with pytest.raises(CurrencyConversionError) as exc_info:
+                service.enrich_account_with_conversion(account)
+            
+            # Verify the exception contains the expected context
+            error = exc_info.value
+            assert "JPY Account" in str(error)
+            assert error.from_currency == "JPY"
+            assert error.to_currency == "EUR"
+            assert error.amount == "100000.00"
+            assert isinstance(error.original_error, ExchangeRateNotFoundError)
 
     def test_enrich_account_with_none_description(self):
         """Test enrichment when account has None description"""

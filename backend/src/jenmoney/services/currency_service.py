@@ -7,6 +7,7 @@ from pathlib import Path
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
+from jenmoney.exceptions import ExchangeRateNotFoundError
 from jenmoney.models.currency_rate import CurrencyRate
 from jenmoney.schemas.currency_rate import CurrencyRateImport
 
@@ -32,6 +33,9 @@ class CurrencyService:
 
         Returns:
             Exchange rate as Decimal
+            
+        Raises:
+            ExchangeRateNotFoundError: When no exchange rate is found for the currency pair
         """
         if from_currency == to_currency:
             return Decimal("1.0")
@@ -42,21 +46,43 @@ class CurrencyService:
         # If converting to USD, get direct rate
         if to_currency == "USD":
             rate = self._get_rate_to_usd(from_currency, date)
-            return Decimal(str(rate)) if rate else Decimal("1.0")
+            if rate is None:
+                raise ExchangeRateNotFoundError(
+                    from_currency=from_currency, 
+                    to_currency=to_currency, 
+                    date=date.isoformat()
+                )
+            return Decimal(str(rate))
 
         # If converting from USD, get inverse rate
         if from_currency == "USD":
             rate = self._get_rate_to_usd(to_currency, date)
-            return Decimal("1.0") / Decimal(str(rate)) if rate else Decimal("1.0")
+            if rate is None:
+                raise ExchangeRateNotFoundError(
+                    from_currency=from_currency, 
+                    to_currency=to_currency, 
+                    date=date.isoformat()
+                )
+            return Decimal("1.0") / Decimal(str(rate))
 
         # For non-USD conversions, go through USD
         from_to_usd = self._get_rate_to_usd(from_currency, date)
         to_to_usd = self._get_rate_to_usd(to_currency, date)
 
-        if from_to_usd and to_to_usd:
-            return Decimal(str(from_to_usd)) / Decimal(str(to_to_usd))
+        if from_to_usd is None:
+            raise ExchangeRateNotFoundError(
+                from_currency=from_currency, 
+                to_currency="USD", 
+                date=date.isoformat()
+            )
+        if to_to_usd is None:
+            raise ExchangeRateNotFoundError(
+                from_currency=to_currency, 
+                to_currency="USD", 
+                date=date.isoformat()
+            )
 
-        return Decimal("1.0")
+        return Decimal(str(from_to_usd)) / Decimal(str(to_to_usd))
 
     def _get_rate_to_usd(self, currency: str, date: datetime) -> float | None:
         """Get the rate for converting a currency to USD."""
@@ -99,12 +125,20 @@ class CurrencyService:
 
         Returns:
             Converted amount as Decimal
+            
+        Raises:
+            ExchangeRateNotFoundError: When no exchange rate is found for the currency pair
         """
         if from_currency == to_currency:
             return amount
 
-        rate = self.get_current_rate(from_currency, to_currency, date)
-        return amount * rate
+        try:
+            rate = self.get_current_rate(from_currency, to_currency, date)
+            return amount * rate
+        except ExchangeRateNotFoundError as e:
+            # Re-raise with amount context for better debugging
+            e.amount = str(amount)
+            raise
 
     def load_rates_from_csv(self, file_path: str | Path) -> int:
         """Load exchange rates from a CSV file.

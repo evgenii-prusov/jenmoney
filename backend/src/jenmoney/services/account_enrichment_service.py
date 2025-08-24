@@ -4,6 +4,7 @@ from typing import Any, cast
 from sqlalchemy.orm import Session
 
 from jenmoney.crud.user_settings import user_settings
+from jenmoney.exceptions import CurrencyConversionError, ExchangeRateNotFoundError
 from jenmoney.models.account import Account
 from jenmoney.services.currency_service import CurrencyService
 
@@ -50,9 +51,14 @@ class AccountEnrichmentService:
                 )
                 account_dict["balance_in_default_currency"] = float(converted_balance)
                 account_dict["exchange_rate_used"] = float(rate)
-            except Exception:
-                # If conversion fails, leave as None
-                pass
+            except ExchangeRateNotFoundError as e:
+                raise CurrencyConversionError(
+                    message=f"Failed to convert account '{account.name}' balance from {account.currency} to {settings.default_currency}",
+                    from_currency=str(account.currency),
+                    to_currency=str(settings.default_currency),
+                    amount=str(account.balance),
+                    original_error=e,
+                ) from e
 
         return account_dict
 
@@ -64,6 +70,9 @@ class AccountEnrichmentService:
 
         Returns:
             The percentage of total portfolio value (0.0 to 1.0)
+            
+        Raises:
+            CurrencyConversionError: When currency conversion fails for any account
         """
         accounts: list[Account] = self.db.query(Account).all()
         if not accounts:
@@ -73,19 +82,28 @@ class AccountEnrichmentService:
         target_usd: Decimal | None = None
 
         for acc in accounts:
-            # Cast because SQLAlchemy attribute is typed as Column[Decimal] for Pylance
-            usd_amount = Decimal(
-                str(
-                    self.currency_service.convert_amount(
-                        amount=cast(Decimal, acc.balance),
-                        from_currency=cast(str, acc.currency),
-                        to_currency="USD",
+            try:
+                # Cast because SQLAlchemy attribute is typed as Column[Decimal] for Pylance
+                usd_amount = Decimal(
+                    str(
+                        self.currency_service.convert_amount(
+                            amount=cast(Decimal, acc.balance),
+                            from_currency=cast(str, acc.currency),
+                            to_currency="USD",
+                        )
                     )
                 )
-            )
-            total_usd += usd_amount
-            if cast(int, acc.id) == account_id:
-                target_usd = usd_amount
+                total_usd += usd_amount
+                if cast(int, acc.id) == account_id:
+                    target_usd = usd_amount
+            except ExchangeRateNotFoundError as e:
+                raise CurrencyConversionError(
+                    message=f"Failed to convert account '{acc.name}' balance to USD for percentage calculation",
+                    from_currency=str(acc.currency),
+                    to_currency="USD", 
+                    amount=str(acc.balance),
+                    original_error=e,
+                ) from e
 
         if total_usd == 0 or target_usd is None:
             return 0.0
