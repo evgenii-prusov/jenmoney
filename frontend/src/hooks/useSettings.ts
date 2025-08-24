@@ -11,7 +11,7 @@ export const useSettings = () => {
   return useQuery({
     queryKey: ['settings'],
     queryFn: settingsApi.getSettings,
-    refetchInterval: 5000,
+    refetchInterval: 20000,
   });
 };
 
@@ -32,6 +32,6 @@ export const useTotalBalance = () => {
   return useQuery({
     queryKey: ['totalBalance'],
     queryFn: settingsApi.getTotalBalance,
-    refetchInterval: 5000,
+    refetchInterval: 20000,
   });
 };

@@ -9,7 +9,7 @@ import type {
 } from '../types/account';
 
 const ACCOUNTS_QUERY_KEY = 'accounts';
-const REFETCH_INTERVAL = 5000; // 5 seconds
+const REFETCH_INTERVAL = 20000; // 20 seconds
 
 export const useAccounts = (params?: PaginationParams) => {
   return useQuery<AccountListResponse, Error>({
