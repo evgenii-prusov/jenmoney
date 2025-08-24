@@ -14,7 +14,7 @@ import {
   MenuItem,
   Typography,
 } from '@mui/material';
-import type { Category, CategoryCreate, CategoryUpdate } from '../types/category';
+import type { Category, CategoryCreate, CategoryUpdate, CategoryType } from '../types/category';
 
 interface CategoryFormProps {
   open: boolean;
@@ -36,15 +36,18 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    type: 'expense' as CategoryType,
     parent_id: undefined as number | undefined,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Get only parent categories (categories with no parent_id) for selection
+  // Get only parent categories of the same type for selection
   const parentCategories = availableCategories.filter(cat => 
-    !cat.parent_id && (!category || cat.id !== category.id)
+    !cat.parent_id && 
+    (!category || cat.id !== category.id) &&
+    cat.type === formData.type
   );
 
   useEffect(() => {
@@ -52,12 +55,14 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
       setFormData({
         name: category.name,
         description: category.description || '',
+        type: category.type,
         parent_id: category.parent_id,
       });
     } else if (mode === 'create') {
       setFormData({
         name: '',
         description: '',
+        type: 'expense',
         parent_id: undefined,
       });
     }
@@ -92,6 +97,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
       const submitData = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
+        type: formData.type,
         parent_id: formData.parent_id || undefined,
       };
 
@@ -118,6 +124,15 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
         [field]: '',
       }));
     }
+  };
+
+  const handleTypeChange = (value: CategoryType) => {
+    setFormData(prev => ({
+      ...prev,
+      type: value,
+      // Reset parent when changing type since parent must be same type
+      parent_id: undefined,
+    }));
   };
 
   const handleParentChange = (value: number | '') => {
@@ -163,6 +178,22 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
             />
 
             <FormControl fullWidth disabled={isSubmitting}>
+              <InputLabel>Category Type</InputLabel>
+              <Select
+                value={formData.type}
+                onChange={(e) => handleTypeChange(e.target.value as CategoryType)}
+                label="Category Type"
+                required
+              >
+                <MenuItem value="income">Income</MenuItem>
+                <MenuItem value="expense">Expense</MenuItem>
+              </Select>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, px: 1 }}>
+                Income categories track money coming in, expense categories track money going out.
+              </Typography>
+            </FormControl>
+
+            <FormControl fullWidth disabled={isSubmitting}>
               <InputLabel>Parent Category (Optional)</InputLabel>
               <Select
                 value={formData.parent_id || ''}
@@ -174,12 +205,12 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
                 </MenuItem>
                 {parentCategories.map((cat) => (
                   <MenuItem key={cat.id} value={cat.id}>
-                    {cat.name}
+                    {cat.name} ({cat.type})
                   </MenuItem>
                 ))}
               </Select>
               <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, px: 1 }}>
-                Select a parent category to create a subcategory. Only 2 levels are supported.
+                Select a parent category of the same type to create a subcategory. Only 2 levels are supported.
               </Typography>
             </FormControl>
 

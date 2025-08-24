@@ -22,26 +22,43 @@ def create_tables():
     conn = sqlite3.connect(str(db_path))
     cursor = conn.cursor()
     
-    # Create categories table with hierarchical support
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS categories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name VARCHAR(100) NOT NULL,
-            description TEXT,
-            parent_id INTEGER REFERENCES categories(id),
-            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+    # Check if categories table exists and get its structure
+    cursor.execute("PRAGMA table_info(categories)")
+    existing_columns = {col[1]: col[2] for col in cursor.fetchall()}
     
-    # Create index on parent_id for performance
+    if not existing_columns:
+        # Create categories table with hierarchical support and type
+        cursor.execute("""
+            CREATE TABLE categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(100) NOT NULL,
+                description TEXT,
+                type VARCHAR(10) NOT NULL DEFAULT 'expense',
+                parent_id INTEGER REFERENCES categories(id),
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print("Created new categories table with type support")
+    else:
+        # Check if type column exists, if not add it
+        if 'type' not in existing_columns:
+            print("Adding type column to existing categories table...")
+            cursor.execute("""
+                ALTER TABLE categories 
+                ADD COLUMN type VARCHAR(10) NOT NULL DEFAULT 'expense'
+            """)
+            print("Added type column with default value 'expense'")
+    
+    # Create indexes
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS ix_categories_parent_id ON categories (parent_id)
     """)
-    
-    # Create index on name for performance  
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS ix_categories_name ON categories (name)
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS ix_categories_type ON categories (type)
     """)
     
     # Create accounts table

@@ -3,6 +3,7 @@ from typing import Annotated, Optional, List, TYPE_CHECKING
 
 from pydantic import Field
 
+from jenmoney.models.category import CategoryType
 from jenmoney.schemas.base import BaseAPIModel
 
 if TYPE_CHECKING:
@@ -16,6 +17,7 @@ class CategoryBase(BaseAPIModel):
     """Base category model with core fields that are always present."""
 
     name: Annotated[str, Field(min_length=1, max_length=100)]
+    type: CategoryType
 
 
 class CategoryCreate(CategoryBase):
@@ -30,6 +32,7 @@ class CategoryUpdate(BaseAPIModel):
 
     name: Annotated[str, Field(min_length=1, max_length=100)] | None = None
     description: str | None = None
+    type: CategoryType | None = None
     parent_id: int | None = None
 
 

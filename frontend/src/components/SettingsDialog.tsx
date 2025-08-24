@@ -22,6 +22,7 @@ import {
   Paper,
   Alert,
   Skeleton,
+  Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -101,7 +102,22 @@ const CategoryListItem: React.FC<{
       />
     )}
     <ListItemText
-      primary={category.name}
+      primary={
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <span>{category.name}</span>
+          <Chip 
+            label={category.type} 
+            size="small" 
+            color={category.type === 'income' ? 'success' : 'error'}
+            variant="outlined"
+            sx={{ 
+              fontSize: '0.7rem', 
+              height: '20px',
+              textTransform: 'capitalize',
+            }}
+          />
+        </Box>
+      }
       secondary={category.description || 'No description'}
       sx={{
         '& .MuiListItemText-primary': {

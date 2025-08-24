@@ -34,18 +34,18 @@ def test_categories_crud():
         
         # Test creating a parent category
         cursor.execute("""
-            INSERT INTO categories (name, description, created_at, updated_at)
-            VALUES (?, ?, datetime('now'), datetime('now'))
-        """, ("Test Parent Category", "A test parent category"))
+            INSERT INTO categories (name, description, type, created_at, updated_at)
+            VALUES (?, ?, ?, datetime('now'), datetime('now'))
+        """, ("Test Parent Category", "A test parent category", "expense"))
         parent_id = cursor.lastrowid
         conn.commit()
         print(f"   ✓ Created parent category with ID: {parent_id}")
         
         # Test creating a child category
         cursor.execute("""
-            INSERT INTO categories (name, description, parent_id, created_at, updated_at)
-            VALUES (?, ?, ?, datetime('now'), datetime('now'))
-        """, ("Test Child Category", "A test child category", parent_id))
+            INSERT INTO categories (name, description, type, parent_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+        """, ("Test Child Category", "A test child category", "expense", parent_id))
         child_id = cursor.lastrowid
         conn.commit()
         print(f"   ✓ Created child category with ID: {child_id}")

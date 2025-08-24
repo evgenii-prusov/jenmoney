@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
 
-from jenmoney.models.category import Category
+from jenmoney.models.category import Category, CategoryType
 from jenmoney.schemas.category import CategoryCreate, CategoryUpdate
 
 
@@ -20,32 +20,35 @@ class CRUDCategory:
             .first()
         )
 
-    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> list[Category]:
-        return (
-            db.query(Category)
-            .options(joinedload(Category.children))
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100, type_filter: CategoryType | None = None) -> list[Category]:
+        query = db.query(Category).options(joinedload(Category.children))
+        if type_filter:
+            query = query.filter(Category.type == type_filter)
+        return query.offset(skip).limit(limit).all()
 
-    def get_root_categories(self, db: Session, *, skip: int = 0, limit: int = 100) -> list[Category]:
+    def get_root_categories(self, db: Session, *, skip: int = 0, limit: int = 100, type_filter: CategoryType | None = None) -> list[Category]:
         """Get only root categories (categories with no parent) with their children."""
-        return (
+        query = (
             db.query(Category)
             .options(joinedload(Category.children))
             .filter(Category.parent_id.is_(None))
-            .offset(skip)
-            .limit(limit)
-            .all()
         )
+        if type_filter:
+            query = query.filter(Category.type == type_filter)
+        return query.offset(skip).limit(limit).all()
 
-    def count(self, db: Session) -> int:
-        return db.query(Category).count()
+    def count(self, db: Session, type_filter: CategoryType | None = None) -> int:
+        query = db.query(Category)
+        if type_filter:
+            query = query.filter(Category.type == type_filter)
+        return query.count()
 
-    def count_root_categories(self, db: Session) -> int:
+    def count_root_categories(self, db: Session, type_filter: CategoryType | None = None) -> int:
         """Count only root categories (categories with no parent)."""
-        return db.query(Category).filter(Category.parent_id.is_(None)).count()
+        query = db.query(Category).filter(Category.parent_id.is_(None))
+        if type_filter:
+            query = query.filter(Category.type == type_filter)
+        return query.count()
 
     def update(self, db: Session, *, db_obj: Category, obj_in: CategoryUpdate) -> Category:
         update_data = obj_in.model_dump(exclude_unset=True)

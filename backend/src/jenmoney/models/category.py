@@ -1,9 +1,16 @@
 from datetime import datetime, timezone
+import enum
 
-from sqlalchemy import Column, DateTime, String, Text, Integer, ForeignKey
+from sqlalchemy import Column, DateTime, String, Text, Integer, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 
 from jenmoney.database import Base
+
+
+class CategoryType(enum.Enum):
+    """Category type enumeration."""
+    INCOME = "income"
+    EXPENSE = "expense"
 
 
 class Category(Base):  # type: ignore[misc, valid-type]
@@ -12,6 +19,7 @@ class Category(Base):  # type: ignore[misc, valid-type]
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(100), nullable=False, index=True)
     description = Column(Text, nullable=True)
+    type = Column(Enum(CategoryType), nullable=False, index=True)
     parent_id = Column(Integer, ForeignKey("categories.id"), nullable=True, index=True)
     created_at = Column(
         DateTime,

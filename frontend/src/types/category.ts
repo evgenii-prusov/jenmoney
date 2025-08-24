@@ -1,7 +1,10 @@
+export type CategoryType = 'income' | 'expense';
+
 export interface Category {
   id: number;
   name: string;
   description?: string;
+  type: CategoryType;
   parent_id?: number;
   created_at: string;
   updated_at: string;
@@ -11,12 +14,14 @@ export interface Category {
 export interface CategoryCreate {
   name: string;
   description?: string;
+  type: CategoryType;
   parent_id?: number;
 }
 
 export interface CategoryUpdate {
   name?: string;
   description?: string;
+  type?: CategoryType;
   parent_id?: number;
 }
 

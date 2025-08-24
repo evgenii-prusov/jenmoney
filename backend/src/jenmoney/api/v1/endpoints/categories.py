@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from jenmoney import crud, schemas
 from jenmoney.database import get_db
+from jenmoney.models.category import CategoryType
 
 router = APIRouter()
 
@@ -25,6 +26,9 @@ def create_category(
         # Prevent deep nesting - only allow 2 levels (parent -> child)
         if parent.parent_id is not None:
             raise HTTPException(status_code=400, detail="Cannot create more than 2 levels of categories")
+        # Ensure child category has the same type as parent
+        if parent.type != category_in.type:
+            raise HTTPException(status_code=400, detail="Child category must have the same type as parent")
     
     category = crud.category.create(db=db, obj_in=category_in)
     return category
@@ -36,14 +40,15 @@ def read_categories(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     hierarchical: bool = Query(False, description="Return only root categories with their children"),
+    type: CategoryType | None = Query(None, description="Filter by category type"),
 ) -> Any:
     """Get list of categories with pagination. Use hierarchical=true for tree view."""
     if hierarchical:
-        categories = crud.category.get_root_categories(db, skip=skip, limit=limit)
-        total = crud.category.count_root_categories(db)
+        categories = crud.category.get_root_categories(db, skip=skip, limit=limit, type_filter=type)
+        total = crud.category.count_root_categories(db, type_filter=type)
     else:
-        categories = crud.category.get_multi(db, skip=skip, limit=limit)
-        total = crud.category.count(db)
+        categories = crud.category.get_multi(db, skip=skip, limit=limit, type_filter=type)
+        total = crud.category.count(db, type_filter=type)
     
     return schemas.CategoryListResponse(
         items=categories,
@@ -55,9 +60,12 @@ def read_categories(
 
 
 @router.get("/hierarchy", response_model=list[schemas.CategoryResponse])
-def read_categories_hierarchy(db: Session = Depends(get_db)) -> Any:
+def read_categories_hierarchy(
+    db: Session = Depends(get_db),
+    type: CategoryType | None = Query(None, description="Filter by category type"),
+) -> Any:
     """Get all categories in hierarchical structure (root categories with their children)."""
-    categories = crud.category.get_root_categories(db, skip=0, limit=1000)  # Get all root categories
+    categories = crud.category.get_root_categories(db, skip=0, limit=1000, type_filter=type)  # Get all root categories
     return categories
 
 
@@ -100,6 +108,22 @@ def update_category(
         # Prevent deep nesting - only allow 2 levels
         if parent.parent_id is not None:
             raise HTTPException(status_code=400, detail="Cannot create more than 2 levels of categories")
+        
+        # Ensure type compatibility when changing parent
+        category_type = category_in.type if category_in.type is not None else category.type
+        if parent.type != category_type:
+            raise HTTPException(status_code=400, detail="Child category must have the same type as parent")
+    
+    # If changing type, validate all children have compatible type
+    if category_in.type is not None and category_in.type != category.type:
+        # Check if category has children and their types
+        if category.children:
+            for child in category.children:
+                if child.type != category_in.type:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Cannot change type: child category '{child.name}' has different type"
+                    )
     
     category = crud.category.update(db=db, db_obj=category, obj_in=category_in)
     return category
