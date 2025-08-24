@@ -11,6 +11,12 @@ from jenmoney.schemas.currency_rate import (
     CurrencyRateResponse,
     CurrencyRateUpdate,
 )
+from jenmoney.schemas.transfer import (
+    TransferCreate,
+    TransferListResponse,
+    TransferResponse,
+    TransferUpdate,
+)
 from jenmoney.schemas.user_settings import (
     UserSettingsCreate,
     UserSettingsResponse,
@@ -27,6 +33,10 @@ __all__ = [
     "CurrencyRateUpdate",
     "CurrencyRateResponse",
     "CurrencyRateImport",
+    "TransferCreate",
+    "TransferUpdate",
+    "TransferResponse",
+    "TransferListResponse",
     "UserSettingsCreate",
     "UserSettingsUpdate",
     "UserSettingsResponse",

@@ -70,7 +70,7 @@ class AccountEnrichmentService:
 
         Returns:
             The percentage of total portfolio value (0.0 to 1.0)
-            
+
         Raises:
             CurrencyConversionError: When currency conversion fails for any account
         """
@@ -100,7 +100,7 @@ class AccountEnrichmentService:
                 raise CurrencyConversionError(
                     message=f"Failed to convert account '{acc.name}' balance to USD for percentage calculation",
                     from_currency=str(acc.currency),
-                    to_currency="USD", 
+                    to_currency="USD",
                     amount=str(acc.balance),
                     original_error=e,
                 ) from e

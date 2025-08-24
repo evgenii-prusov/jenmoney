@@ -33,7 +33,7 @@ class CurrencyService:
 
         Returns:
             Exchange rate as Decimal
-            
+
         Raises:
             ExchangeRateNotFoundError: When no exchange rate is found for the currency pair
         """
@@ -48,9 +48,7 @@ class CurrencyService:
             rate = self._get_rate_to_usd(from_currency, date)
             if rate is None:
                 raise ExchangeRateNotFoundError(
-                    from_currency=from_currency, 
-                    to_currency=to_currency, 
-                    date=date.isoformat()
+                    from_currency=from_currency, to_currency=to_currency, date=date.isoformat()
                 )
             return Decimal(str(rate))
 
@@ -59,9 +57,7 @@ class CurrencyService:
             rate = self._get_rate_to_usd(to_currency, date)
             if rate is None:
                 raise ExchangeRateNotFoundError(
-                    from_currency=from_currency, 
-                    to_currency=to_currency, 
-                    date=date.isoformat()
+                    from_currency=from_currency, to_currency=to_currency, date=date.isoformat()
                 )
             return Decimal("1.0") / Decimal(str(rate))
 
@@ -71,15 +67,11 @@ class CurrencyService:
 
         if from_to_usd is None:
             raise ExchangeRateNotFoundError(
-                from_currency=from_currency, 
-                to_currency="USD", 
-                date=date.isoformat()
+                from_currency=from_currency, to_currency="USD", date=date.isoformat()
             )
         if to_to_usd is None:
             raise ExchangeRateNotFoundError(
-                from_currency=to_currency, 
-                to_currency="USD", 
-                date=date.isoformat()
+                from_currency=to_currency, to_currency="USD", date=date.isoformat()
             )
 
         return Decimal(str(from_to_usd)) / Decimal(str(to_to_usd))
@@ -125,7 +117,7 @@ class CurrencyService:
 
         Returns:
             Converted amount as Decimal
-            
+
         Raises:
             ExchangeRateNotFoundError: When no exchange rate is found for the currency pair
         """
