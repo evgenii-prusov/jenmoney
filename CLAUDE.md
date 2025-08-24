@@ -199,6 +199,7 @@ The application supports multiple currencies (EUR, USD, RUB, JPY) with automatic
 ### Database Tables
 - `accounts`: Financial accounts with currency field
 - `currency_rates`: Exchange rates with effective dates
+- `transfers`: Money transfers between accounts with multi-currency support
 - `user_settings`: User preferences including default currency
 
 ## API Endpoints
@@ -212,6 +213,12 @@ Base URL: `http://localhost:8000/api/v1`
 - `PATCH /accounts/{id}` - Update account
 - `DELETE /accounts/{id}` - Delete account
 - `GET /accounts/total-balance/` - Get total portfolio value in default currency
+
+### Transfers
+- `GET /transfers/` - List all transfers (paginated, with optional account filtering)
+- `POST /transfers/` - Create new transfer between accounts
+- `GET /transfers/{id}` - Get specific transfer
+- `PATCH /transfers/{id}` - Update transfer status or description
 
 ### Settings
 - `GET /settings/` - Get user settings (including default currency)
