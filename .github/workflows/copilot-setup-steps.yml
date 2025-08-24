@@ -78,7 +78,7 @@ jobs:
           print("DB initialized")
           PY
 
-      - name: Smoke: list tool versions
+      - name: "Smoke: list tool versions"
         run: |
           echo "Python versions:"
           uv python list
