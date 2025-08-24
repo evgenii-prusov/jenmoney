@@ -9,7 +9,6 @@ from jenmoney import crud, schemas
 from jenmoney.crud.user_settings import user_settings
 from jenmoney.database import get_db
 from jenmoney.services.currency_service import CurrencyService
-from jenmoney.services.account_analytics_service import AccountAnalyticService
 from jenmoney.services.account_enrichment_service import AccountEnrichmentService
 
 router = APIRouter()
@@ -23,15 +22,7 @@ def create_account(
 ) -> Any:
     account = crud.account.create(db=db, obj_in=account_in)
     enrichment_service = AccountEnrichmentService(db)
-    enriched_account = enrichment_service.enrich_account_with_conversion(account)
-
-    # Add percentage calculation
-    account_analytics_service = AccountAnalyticService()
-    enriched_account["percentage_of_total"] = account_analytics_service.get_account_percentage(
-        db, cast(int, account.id)
-    )
-
-    return enriched_account
+    return enrichment_service.enrich_account_full(account)
 
 
 @router.get("/", response_model=schemas.AccountListResponse)
@@ -45,14 +36,8 @@ def read_accounts(
 
     enrichment_service = AccountEnrichmentService(db)
     enriched_accounts = [
-        enrichment_service.enrich_account_with_conversion(account) for account in accounts
+        enrichment_service.enrich_account_full(account) for account in accounts
     ]
-
-    account_analytics_service = AccountAnalyticService()
-    for enriched_account in enriched_accounts:
-        enriched_account["percentage_of_total"] = account_analytics_service.get_account_percentage(
-            db, cast(int, enriched_account["id"])
-        )
 
     return {
         "items": enriched_accounts,
@@ -66,17 +51,12 @@ def read_accounts(
 @router.get("/{account_id}", response_model=schemas.AccountResponse)
 def read_account(*, db: Session = Depends(get_db), account_id: int) -> Any:
     account = crud.account.get(db=db, id=account_id)
-    account_analytics_service = AccountAnalyticService()
 
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
 
     enrichment_service = AccountEnrichmentService(db)
-    enriched_account = enrichment_service.enrich_account_with_conversion(account)
-    enriched_account["percentage_of_total"] = account_analytics_service.get_account_percentage(
-        db, account_id
-    )
-    return enriched_account
+    return enrichment_service.enrich_account_full(account)
 
 
 @router.patch("/{account_id}", response_model=schemas.AccountResponse)
@@ -92,15 +72,7 @@ def update_account(
     account = crud.account.update(db=db, db_obj=account, obj_in=account_in)
 
     enrichment_service = AccountEnrichmentService(db)
-    enriched_account = enrichment_service.enrich_account_with_conversion(account)
-
-    # Add percentage calculation
-    account_analytics_service = AccountAnalyticService()
-    enriched_account["percentage_of_total"] = account_analytics_service.get_account_percentage(
-        db, account_id
-    )
-
-    return enriched_account
+    return enrichment_service.enrich_account_full(account)
 
 
 @router.delete("/{account_id}", response_model=schemas.AccountResponse)
@@ -110,8 +82,8 @@ def delete_account(*, db: Session = Depends(get_db), account_id: int) -> Any:
         raise HTTPException(status_code=404, detail="Account not found")
 
     # Calculate percentage before deletion
-    account_analytics_service = AccountAnalyticService()
-    percentage = account_analytics_service.get_account_percentage(db, account_id)
+    enrichment_service = AccountEnrichmentService(db)
+    percentage = enrichment_service.get_account_percentage(account_id)
 
     deleted_account = crud.account.delete(db=db, id=account_id)
 
@@ -119,7 +91,6 @@ def delete_account(*, db: Session = Depends(get_db), account_id: int) -> Any:
     if not deleted_account:
         raise HTTPException(status_code=500, detail="Failed to delete account")
 
-    enrichment_service = AccountEnrichmentService(db)
     enriched_account = enrichment_service.enrich_account_with_conversion(deleted_account)
     enriched_account["percentage_of_total"] = percentage
 
