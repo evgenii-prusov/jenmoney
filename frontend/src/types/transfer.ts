@@ -8,6 +8,7 @@ export interface Transfer {
   to_amount: number;
   from_currency: Currency;
   to_currency: Currency;
+  exchange_rate?: number | null;
   description?: string | null;
   created_at: string;
   updated_at: string;
@@ -17,7 +18,7 @@ export interface TransferCreate {
   from_account_id: number;
   to_account_id: number;
   from_amount: number;
-  to_amount: number;
+  to_amount?: number; // Optional for auto-calculation in same currency
   description?: string | null;
 }
 
