@@ -9,11 +9,14 @@ import {
   Paper,
   IconButton,
   Tooltip,
+  Button,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { AccountCard } from '../../components/AccountCard';
 import { AccountForm } from '../../components/AccountForm';
+import { TransferForm } from '../../components/TransferForm';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { SettingsDialog } from '../../components/SettingsDialog';
 import { TotalBalance } from '../../components/TotalBalance';
@@ -23,8 +26,10 @@ import {
   useUpdateAccountWithToast,
   useDeleteAccountWithToast,
 } from '../../hooks/useAccountsWithToast';
+import { useCreateTransferWithToast } from '../../hooks/useTransfersWithToast';
 import { useSettings, useUpdateSettings, useTotalBalance } from '../../hooks/useSettings';
 import type { Account, AccountCreate, AccountUpdate, Currency } from '../../types/account';
+import type { TransferCreate } from '../../types/transfer';
 
 export const AccountsPage: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
@@ -33,11 +38,13 @@ export const AccountsPage: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [transferFormOpen, setTransferFormOpen] = useState(false);
 
   const { data, isLoading, error } = useAccountsWithToast();
   const createMutation = useCreateAccountWithToast();
   const updateMutation = useUpdateAccountWithToast();
   const deleteMutation = useDeleteAccountWithToast();
+  const createTransferMutation = useCreateTransferWithToast();
   const { data: settings } = useSettings();
   const updateSettings = useUpdateSettings();
   const { data: totalBalanceData, isLoading: totalBalanceLoading } = useTotalBalance();
@@ -46,6 +53,10 @@ export const AccountsPage: React.FC = () => {
     setFormMode('create');
     setSelectedAccount(null);
     setFormOpen(true);
+  };
+
+  const handleTransferClick = () => {
+    setTransferFormOpen(true);
   };
 
   const handleEditClick = (account: Account) => {
@@ -86,6 +97,10 @@ export const AccountsPage: React.FC = () => {
     await updateSettings.mutateAsync({ default_currency: currency });
   };
 
+  const handleTransferSubmit = async (transferData: TransferCreate) => {
+    await createTransferMutation.mutateAsync(transferData);
+  };
+
 
   if (error) {
     return (
@@ -108,14 +123,25 @@ export const AccountsPage: React.FC = () => {
             Manage your financial accounts and track balances
           </Typography>
         </Box>
-        <Tooltip title="Settings">
-          <IconButton
-            onClick={() => setSettingsOpen(true)}
-            sx={{ ml: 2 }}
-          >
-            <SettingsIcon />
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {data && data.items.length >= 2 && (
+            <Button
+              variant="outlined"
+              startIcon={<SwapHorizIcon />}
+              onClick={handleTransferClick}
+              sx={{ mr: 1 }}
+            >
+              Transfer
+            </Button>
+          )}
+          <Tooltip title="Settings">
+            <IconButton
+              onClick={() => setSettingsOpen(true)}
+            >
+              <SettingsIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       {!isLoading && data && data.items.length > 0 && (
@@ -212,6 +238,14 @@ export const AccountsPage: React.FC = () => {
         onClose={() => setSettingsOpen(false)}
         settings={settings}
         onSave={handleSettingsSave}
+      />
+
+      {/* Transfer Form Modal */}
+      <TransferForm
+        open={transferFormOpen}
+        onClose={() => setTransferFormOpen(false)}
+        onSubmit={handleTransferSubmit}
+        accounts={data?.items || []}
       />
     </Box>
   );
