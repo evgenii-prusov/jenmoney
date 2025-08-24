@@ -86,10 +86,11 @@ jobs:
           echo "uv: $(uv --version)"
           echo "Node: $(node --version)"
           echo "npm: $(npm --version)"
-          cd backend && uv run ruff --version
-          cd backend && uv run mypy --version
-          cd backend && uv run pytest --version
-          cd backend && uv run pre-commit --version
+          echo "Backend tools:"
+          (cd backend && uv run ruff --version)
+          (cd backend && uv run mypy --version)
+          (cd backend && uv run pytest --version)
+          (cd backend && uv run pre-commit --version)
 
       - name: (Optional) Quick backend import check
         run: |
