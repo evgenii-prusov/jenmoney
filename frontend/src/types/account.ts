@@ -13,6 +13,7 @@ export interface Account {
   currency: Currency;
   balance: number;
   balance_in_default_currency?: number | null;
+  percentage_of_total: number;
   default_currency?: Currency | null;
   exchange_rate_used?: number | null;
   description?: string | null;
