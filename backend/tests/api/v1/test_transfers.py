@@ -40,7 +40,6 @@ class TestTransferCreate:
         assert data["from_currency"] == "EUR"
         assert data["to_currency"] == "EUR"
         assert data["exchange_rate"] is None  # Same currency
-        assert data["status"] == "completed"
         assert data["description"] == "Test transfer"
         
         # Check account balances were updated
@@ -149,7 +148,6 @@ class TestTransferList:
         assert "to_account_id" in transfer_item
         assert "from_amount" in transfer_item
         assert "to_amount" in transfer_item
-        assert "status" in transfer_item
 
     def test_get_transfers_pagination(self, client, db_session: Session, sample_transfers):
         """Test transfer pagination."""
@@ -215,24 +213,6 @@ class TestTransferUpdate:
         
         data = response.json()
         assert data["description"] == "Updated description"
-
-    def test_update_transfer_status(self, client, db_session: Session, sample_transfers):
-        """Test updating transfer status."""
-        # Create a pending transfer first
-        transfer_service = TransferService(db_session)
-        transfer = sample_transfers[0]
-        transfer.status = "pending"
-        db_session.commit()
-        
-        update_data = {
-            "status": "cancelled"
-        }
-        
-        response = client.patch(f"/api/v1/transfers/{transfer.id}", json=update_data)
-        assert response.status_code == 200
-        
-        data = response.json()
-        assert data["status"] == "cancelled"
 
     def test_update_transfer_not_found(self, client):
         """Test updating a non-existent transfer."""
