@@ -1,5 +1,6 @@
 import pytest
 from decimal import Decimal
+from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
@@ -32,7 +33,52 @@ def db_session():
 
 
 @pytest.fixture
-def client(db_session):
+def sample_currency_rates(db_session: Session):
+    """Create sample currency rates for testing."""
+    now = datetime.now(timezone.utc)
+    end_date = datetime(2025, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    
+    # Create currency rates - all rates are to USD
+    rates = [
+        models.CurrencyRate(
+            currency_from="EUR",
+            currency_to="USD",
+            rate=Decimal("1.1"),
+            effective_from=now,
+            effective_to=end_date
+        ),
+        models.CurrencyRate(
+            currency_from="USD", 
+            currency_to="USD",
+            rate=Decimal("1.0"),
+            effective_from=now,
+            effective_to=end_date
+        ),
+        models.CurrencyRate(
+            currency_from="RUB",
+            currency_to="USD",
+            rate=Decimal("0.011"),
+            effective_from=now,
+            effective_to=end_date
+        ),
+        models.CurrencyRate(
+            currency_from="JPY",
+            currency_to="USD",
+            rate=Decimal("0.007"),
+            effective_from=now,
+            effective_to=end_date
+        )
+    ]
+    
+    for rate in rates:
+        db_session.add(rate)
+    db_session.commit()
+    
+    return rates
+
+
+@pytest.fixture
+def client(db_session, sample_currency_rates):
     """Create a test client."""
     def override_get_db():
         try:
@@ -47,7 +93,7 @@ def client(db_session):
 
 
 @pytest.fixture
-def sample_accounts(db_session: Session):
+def sample_accounts(db_session: Session, sample_currency_rates):
     """Create sample accounts for testing."""
     # Create two accounts
     account_1 = crud.account.create(
