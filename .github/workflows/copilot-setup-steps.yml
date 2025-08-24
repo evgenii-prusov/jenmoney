@@ -11,6 +11,7 @@ on:
 
 jobs:
   copilot-setup-steps:
+    name: Prepare Copilot Dev Environment
     runs-on: ubuntu-latest
     permissions:
       contents: read
