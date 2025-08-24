@@ -20,16 +20,22 @@ import {
   Stack,
   Alert,
   CircularProgress,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   Add as AddIcon,
   SwapHoriz as SwapHorizIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { transfersApi, type TransferListParams } from '../../api/transfers';
 import { accountsApi } from '../../api/accounts';
 import { TransferForm } from '../../components/TransferForm';
-import type { Transfer } from '../../types/transfer';
+import { EditTransferDialog } from '../../components/EditTransferDialog';
+import { DeleteTransferDialog } from '../../components/DeleteTransferDialog';
+import type { Transfer, TransferUpdate, TransferCreate } from '../../types/transfer';
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
 
@@ -38,6 +44,11 @@ export const TransfersPage: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [accountFilter, setAccountFilter] = useState<number | undefined>(undefined);
   const [isTransferFormOpen, setIsTransferFormOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
+
+  const queryClient = useQueryClient();
 
   // Query parameters for transfers
   const transferParams: TransferListParams = {
@@ -86,10 +97,42 @@ export const TransfersPage: React.FC = () => {
     setPage(0);
   };
 
-  const handleCreateTransfer = async (transferData: any) => {
+  const handleCreateTransfer = async (transferData: TransferCreate) => {
     await transfersApi.createTransfer(transferData);
     setIsTransferFormOpen(false);
     refetchTransfers();
+  };
+
+  const handleEditTransfer = (transfer: Transfer) => {
+    setSelectedTransfer(transfer);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateTransfer = async (updateData: TransferUpdate) => {
+    if (!selectedTransfer) return;
+    
+    await transfersApi.updateTransfer(selectedTransfer.id, updateData);
+    setIsEditDialogOpen(false);
+    setSelectedTransfer(null);
+    
+    // Invalidate and refetch transfers
+    queryClient.invalidateQueries({ queryKey: ['transfers'] });
+  };
+
+  const handleDeleteTransfer = (transfer: Transfer) => {
+    setSelectedTransfer(transfer);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedTransfer) return;
+    
+    await transfersApi.deleteTransfer(selectedTransfer.id);
+    setIsDeleteDialogOpen(false);
+    setSelectedTransfer(null);
+    
+    // Invalidate and refetch transfers
+    queryClient.invalidateQueries({ queryKey: ['transfers'] });
   };
 
   const getAccountName = (accountId: number): string => {
@@ -179,18 +222,19 @@ export const TransfersPage: React.FC = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Amount</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Exchange Rate</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
+                <TableCell sx={{ fontWeight: 600, width: 120 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {transfersLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : transfers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                     <Typography variant="body2" color="text.secondary">
                       No transfers found
                     </Typography>
@@ -246,6 +290,28 @@ export const TransfersPage: React.FC = () => {
                         {transfer.description || '-'}
                       </Typography>
                     </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={0.5}>
+                        <Tooltip title="Edit description">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditTransfer(transfer)}
+                            sx={{ color: 'primary.main' }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete transfer">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteTransfer(transfer)}
+                            sx={{ color: 'error.main' }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -272,6 +338,29 @@ export const TransfersPage: React.FC = () => {
         onClose={() => setIsTransferFormOpen(false)}
         onSubmit={handleCreateTransfer}
         accounts={accounts}
+      />
+
+      {/* Edit Transfer Dialog */}
+      <EditTransferDialog
+        open={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false);
+          setSelectedTransfer(null);
+        }}
+        onSubmit={handleUpdateTransfer}
+        transfer={selectedTransfer}
+      />
+
+      {/* Delete Transfer Dialog */}
+      <DeleteTransferDialog
+        open={isDeleteDialogOpen}
+        onClose={() => {
+          setIsDeleteDialogOpen(false);
+          setSelectedTransfer(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        transfer={selectedTransfer}
+        getAccountName={getAccountName}
       />
 
       {/* Floating Action Button - Alternative placement */}

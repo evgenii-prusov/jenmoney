@@ -117,3 +117,23 @@ def update_transfer(
     transfer = crud.transfer.update(db=db, db_obj=transfer, obj_in=transfer_in)
 
     return _convert_transfer_to_response(transfer)
+
+
+@router.delete("/{transfer_id}", response_model=schemas.TransferResponse)
+def delete_transfer(
+    *,
+    db: Session = Depends(get_db),
+    transfer_id: int,
+) -> Any:
+    """Delete a transfer by ID."""
+    transfer = crud.transfer.get(db=db, id=transfer_id)
+    if not transfer:
+        raise HTTPException(status_code=404, detail="Transfer not found")
+
+    # Store transfer data before deletion for response
+    transfer_response = _convert_transfer_to_response(transfer)
+    
+    # Delete the transfer
+    crud.transfer.remove(db=db, id=transfer_id)
+    
+    return transfer_response
