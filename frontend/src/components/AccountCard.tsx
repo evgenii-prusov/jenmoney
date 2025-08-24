@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Card,
   CardContent,
-  CardActions,
   Typography,
   IconButton,
   Chip,
@@ -54,7 +53,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
         position: 'relative',
         cursor: 'pointer',
         '&:hover': {
-          '& .MuiCardActions-root': {
+          '& .card-actions': {
             opacity: 1,
           },
         },
@@ -93,18 +92,67 @@ export const AccountCard: React.FC<AccountCardProps> = ({
           </Box>
         </Box>
 
-        <Typography
-          variant="h4"
-          component="p"
-          color="primary"
-          sx={{
-            fontWeight: 700,
-            mb: account.balance_in_default_currency ? 1 : 2,
-            letterSpacing: '-0.5px',
-          }}
-        >
-          {formatBalance(account.balance, account.currency)}
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography
+            variant="h4"
+            component="p"
+            color="primary"
+            sx={{
+              fontWeight: 700,
+              mb: account.balance_in_default_currency ? 1 : 2,
+              letterSpacing: '-0.5px',
+            }}
+          >
+            {formatBalance(account.balance, account.currency)}
+          </Typography>
+          
+          <Box 
+            className="card-actions"
+            sx={{ 
+              display: 'flex', 
+              gap: 0.5,
+              opacity: 0.7,
+              transition: 'opacity 0.2s ease-in-out',
+            }}
+          >
+            <Tooltip title="Edit account">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(account);
+                }}
+                sx={{
+                  color: 'primary.main',
+                  '&:hover': {
+                    backgroundColor: 'primary.main',
+                    color: 'primary.contrastText',
+                  },
+                }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete account">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(account);
+                }}
+                sx={{
+                  color: 'error.main',
+                  '&:hover': {
+                    backgroundColor: 'error.main',
+                    color: 'error.contrastText',
+                  },
+                }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
 
         {account.balance_in_default_currency && account.default_currency && (
           <Typography
@@ -147,53 +195,6 @@ export const AccountCard: React.FC<AccountCardProps> = ({
           </Typography>
         )}
       </CardContent>
-
-      <CardActions
-        sx={{
-          justifyContent: 'flex-end',
-          px: 2,
-          py: 1,
-          opacity: 0.7,
-          transition: 'opacity 0.2s ease-in-out',
-        }}
-      >
-        <Tooltip title="Edit account">
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(account);
-            }}
-            sx={{
-              color: 'primary.main',
-              '&:hover': {
-                backgroundColor: 'primary.main',
-                color: 'primary.contrastText',
-              },
-            }}
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Delete account">
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(account);
-            }}
-            sx={{
-              color: 'error.main',
-              '&:hover': {
-                backgroundColor: 'error.main',
-                color: 'error.contrastText',
-              },
-            }}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </CardActions>
     </Card>
   );
 };
