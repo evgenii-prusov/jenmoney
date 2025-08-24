@@ -1,0 +1,106 @@
+name: Copilot Setup Steps
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: copilot-setup-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  setup-environment:
+    name: Prepare Copilot Dev Environment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Cache uv download / build artifacts
+      - name: Cache uv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-0.5.18
+          restore-keys: |
+            uv-${{ runner.os }}-
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.5.18"
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Cache frontend npm deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            frontend/node_modules
+          key: npm-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential git curl wget sqlite3 lsof
+
+      - name: Project setup (Makefile)
+        run: |
+          test -f Makefile || { echo "Makefile missing"; exit 1; }
+          make setup
+        # `make setup` must perform:
+        # - uv sync (backend dev + dev tools)
+        # - npm ci (frontend)
+        # - pre-commit install (hooks)
+        # - any other initialization (e.g., generating .env templates)
+
+      - name: Initialize database
+        working-directory: backend
+        run: |
+          mkdir -p data
+          uv run python - <<'PY'
+          from jenmoney.database import init_db
+          init_db()
+          print("DB initialized")
+          PY
+
+      - name: Smoke: list tool versions
+        run: |
+          echo "Python versions:"
+          uv python list
+          echo "uv: $(uv --version)"
+          echo "Node: $(node --version)"
+          echo "npm: $(npm --version)"
+          cd backend && uv run ruff --version
+          cd backend && uv run mypy --version
+          cd backend && uv run pytest --version
+          cd backend && uv run pre-commit --version
+
+      - name: (Optional) Quick backend import check
+        run: |
+          cd backend
+          uv run python -c "import jenmoney; print('Imported jenmoney OK')"
+
+      - name: Summary
+        run: |
+          echo "Copilot environment ready" >> $GITHUB_STEP_SUMMARY
+          echo "- Python: $(uv python list | grep 3.13 | head -1)" >> $GITHUB_STEP_SUMMARY
+          echo "- Node: $(node --version)" >> $GITHUB_STEP_SUMMARY
+          echo "- Setup method: make setup" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend deps installed: yes" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend deps installed: yes" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend deps installed: yes" >> $GITHUB_STEP_SUMMARY
