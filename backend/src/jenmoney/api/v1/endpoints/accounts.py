@@ -44,7 +44,9 @@ def read_accounts(
     total = crud.account.count(db)
 
     enrichment_service = AccountEnrichmentService(db)
-    enriched_accounts = [enrichment_service.enrich_account_with_conversion(account) for account in accounts]
+    enriched_accounts = [
+        enrichment_service.enrich_account_with_conversion(account) for account in accounts
+    ]
 
     account_analytics_service = AccountAnalyticService()
     for enriched_account in enriched_accounts:
@@ -68,7 +70,7 @@ def read_account(*, db: Session = Depends(get_db), account_id: int) -> Any:
 
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
-    
+
     enrichment_service = AccountEnrichmentService(db)
     enriched_account = enrichment_service.enrich_account_with_conversion(account)
     enriched_account["percentage_of_total"] = account_analytics_service.get_account_percentage(
@@ -88,7 +90,7 @@ def update_account(
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
     account = crud.account.update(db=db, db_obj=account, obj_in=account_in)
-    
+
     enrichment_service = AccountEnrichmentService(db)
     enriched_account = enrichment_service.enrich_account_with_conversion(account)
 
@@ -112,11 +114,11 @@ def delete_account(*, db: Session = Depends(get_db), account_id: int) -> Any:
     percentage = account_analytics_service.get_account_percentage(db, account_id)
 
     deleted_account = crud.account.delete(db=db, id=account_id)
-    
+
     # Since we verified the account exists before deletion, it should never be None
     if not deleted_account:
         raise HTTPException(status_code=500, detail="Failed to delete account")
-    
+
     enrichment_service = AccountEnrichmentService(db)
     enriched_account = enrichment_service.enrich_account_with_conversion(deleted_account)
     enriched_account["percentage_of_total"] = percentage

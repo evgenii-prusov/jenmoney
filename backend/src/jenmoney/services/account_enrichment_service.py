@@ -17,10 +17,10 @@ class AccountEnrichmentService:
 
     def enrich_account_with_conversion(self, account: Account) -> dict[str, Any]:
         """Enrich account data with currency conversion information.
-        
+
         Args:
             account: The account model instance to enrich
-            
+
         Returns:
             Dictionary containing account data with currency conversion information
         """
