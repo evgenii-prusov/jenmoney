@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  setup-environment:
+  copilot-setup-steps:
     name: Prepare Copilot Dev Environment
     runs-on: ubuntu-latest
     steps:
