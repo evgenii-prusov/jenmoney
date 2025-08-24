@@ -22,6 +22,12 @@ export interface TransferCreate {
   description?: string | null;
 }
 
+export interface TransferUpdate {
+  description?: string | null;
+  from_amount?: number;
+  to_amount?: number;
+}
+
 export interface TransferFormData {
   from_account_id: number;
   to_account_id: number;

@@ -6,8 +6,12 @@ import {
   Typography,
   Container,
   useTheme,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import { Link, useLocation } from '@tanstack/react-router';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -15,6 +19,10 @@ interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const theme = useTheme();
+  const location = useLocation();
+
+  // Determine current tab based on pathname
+  const currentTab = location.pathname === '/transfers' ? 1 : 0;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -38,14 +46,61 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             variant="h5"
             component="h1"
             sx={{
-              flexGrow: 1,
               fontWeight: 600,
               color: 'text.primary',
               letterSpacing: '-0.5px',
+              mr: 4,
             }}
           >
             {import.meta.env.VITE_APP_NAME || 'JenMoney'}
           </Typography>
+          
+          <Tabs 
+            value={currentTab} 
+            sx={{ 
+              flexGrow: 1,
+              '& .MuiTab-root': {
+                color: 'text.secondary',
+                fontWeight: 500,
+                textTransform: 'none',
+                fontSize: '1rem',
+                minHeight: 48,
+              },
+              '& .Mui-selected': {
+                color: 'primary.main',
+              },
+              '& .MuiTabs-indicator': {
+                backgroundColor: 'primary.main',
+              },
+            }}
+          >
+            <Tab
+              label="Accounts"
+              icon={<AccountBalanceWalletIcon />}
+              iconPosition="start"
+              component={Link}
+              to="/"
+              sx={{
+                '& .MuiTab-iconWrapper': {
+                  marginRight: 1,
+                  marginBottom: 0,
+                },
+              }}
+            />
+            <Tab
+              label="Transfers"
+              icon={<SwapHorizIcon />}
+              iconPosition="start"
+              component={Link}
+              to="/transfers"
+              sx={{
+                '& .MuiTab-iconWrapper': {
+                  marginRight: 1,
+                  marginBottom: 0,
+                },
+              }}
+            />
+          </Tabs>
         </Toolbar>
       </AppBar>
 

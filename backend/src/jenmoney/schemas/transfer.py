@@ -40,6 +40,8 @@ class TransferUpdate(BaseAPIModel):
     """Model for updating a transfer."""
 
     description: str | None = None
+    from_amount: Annotated[float, Field(gt=0)] | None = None
+    to_amount: Annotated[float, Field(gt=0)] | None = None
 
 
 class TransferResponse(TransferBase):

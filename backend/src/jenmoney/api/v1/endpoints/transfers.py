@@ -108,12 +108,35 @@ def update_transfer(
     transfer_id: int,
     transfer_in: schemas.TransferUpdate,
 ) -> Any:
-    """Update a transfer (limited to description only)."""
-    transfer = crud.transfer.get(db=db, id=transfer_id)
-    if not transfer:
-        raise HTTPException(status_code=404, detail="Transfer not found")
+    """Update a transfer (description and/or amounts)."""
+    try:
+        transfer_service = TransferService(db)
+        transfer = transfer_service.update_transfer(transfer_id=transfer_id, transfer_in=transfer_in)
+        return _convert_transfer_to_response(transfer)
 
-    # Only allow updating description after creation
-    transfer = crud.transfer.update(db=db, db_obj=transfer, obj_in=transfer_in)
+    except InvalidAccountError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except InsufficientFundsError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except TransferValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transfer update failed: {str(e)}")
 
-    return _convert_transfer_to_response(transfer)
+
+@router.delete("/{transfer_id}", response_model=schemas.TransferResponse)
+def delete_transfer(
+    *,
+    db: Session = Depends(get_db),
+    transfer_id: int,
+) -> Any:
+    """Delete a transfer by ID and reverse account balance changes."""
+    try:
+        transfer_service = TransferService(db)
+        transfer = transfer_service.delete_transfer(transfer_id=transfer_id)
+        return _convert_transfer_to_response(transfer)
+
+    except InvalidAccountError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transfer deletion failed: {str(e)}")
