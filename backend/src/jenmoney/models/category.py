@@ -9,8 +9,8 @@ from jenmoney.database import Base
 
 class CategoryType(enum.Enum):
     """Category type enumeration."""
-    INCOME = "income"
-    EXPENSE = "expense"
+    income = "income"
+    expense = "expense"
 
 
 class Category(Base):  # type: ignore[misc, valid-type]
