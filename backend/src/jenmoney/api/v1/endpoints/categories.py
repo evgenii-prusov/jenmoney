@@ -27,7 +27,7 @@ def create_category(
         if parent.parent_id is not None:
             raise HTTPException(status_code=400, detail="Cannot create more than 2 levels of categories")
         # Ensure child category has the same type as parent
-        if parent.type != category_in.type:
+        if parent.type.value != category_in.type:
             raise HTTPException(status_code=400, detail="Child category must have the same type as parent")
     
     category = crud.category.create(db=db, obj_in=category_in)
@@ -110,16 +110,16 @@ def update_category(
             raise HTTPException(status_code=400, detail="Cannot create more than 2 levels of categories")
         
         # Ensure type compatibility when changing parent
-        category_type = category_in.type if category_in.type is not None else category.type
-        if parent.type != category_type:
+        category_type = category_in.type if category_in.type is not None else category.type.value
+        if parent.type.value != category_type:
             raise HTTPException(status_code=400, detail="Child category must have the same type as parent")
     
     # If changing type, validate all children have compatible type
-    if category_in.type is not None and category_in.type != category.type:
+    if category_in.type is not None and category_in.type != category.type.value:
         # Check if category has children and their types
         if category.children:
             for child in category.children:
-                if child.type != category_in.type:
+                if child.type.value != category_in.type:
                     raise HTTPException(
                         status_code=400, 
                         detail=f"Cannot change type: child category '{child.name}' has different type"

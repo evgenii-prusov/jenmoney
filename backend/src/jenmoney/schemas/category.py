@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Optional, List, TYPE_CHECKING
+from typing import Annotated, List, TYPE_CHECKING
 
 from pydantic import Field
 
