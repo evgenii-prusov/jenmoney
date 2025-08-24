@@ -51,14 +51,10 @@ class AccountEnrichmentService:
                 )
                 account_dict["balance_in_default_currency"] = float(converted_balance)
                 account_dict["exchange_rate_used"] = float(rate)
-            except ExchangeRateNotFoundError as e:
-                raise CurrencyConversionError(
-                    message=f"Failed to convert account '{account.name}' balance from {account.currency} to {settings.default_currency}",
-                    from_currency=str(account.currency),
-                    to_currency=str(settings.default_currency),
-                    amount=str(account.balance),
-                    original_error=e,
-                ) from e
+            except ExchangeRateNotFoundError:
+                # Gracefully handle missing exchange rates - leave conversion fields as None
+                # This allows the app to function even when exchange rates aren't configured yet
+                pass
 
         return account_dict
 

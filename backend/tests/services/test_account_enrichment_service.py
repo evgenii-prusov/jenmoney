@@ -85,8 +85,8 @@ class TestAccountEnrichmentService:
                 Decimal("1000.00"), "USD", "EUR"
             )
 
-    def test_enrich_account_conversion_failure(self):
-        """Test enrichment when currency conversion fails"""
+    def test_enrich_account_conversion_graceful_fallback(self):
+        """Test enrichment gracefully handles missing exchange rates"""
         db = Mock(spec=Session)
         service = AccountEnrichmentService(db)
 
@@ -111,17 +111,20 @@ class TestAccountEnrichmentService:
                 side_effect=ExchangeRateNotFoundError("JPY", "EUR")
             )
 
-            # Should raise CurrencyConversionError with context
-            with pytest.raises(CurrencyConversionError) as exc_info:
-                service.enrich_account_with_conversion(account)
+            # Should not raise exception, instead return None for conversion fields
+            result = service.enrich_account_with_conversion(account)
             
-            # Verify the exception contains the expected context
-            error = exc_info.value
-            assert "JPY Account" in str(error)
-            assert error.from_currency == "JPY"
-            assert error.to_currency == "EUR"
-            assert error.amount == "100000.00"
-            assert isinstance(error.original_error, ExchangeRateNotFoundError)
+            # Verify basic account data is present
+            assert result["id"] == 1
+            assert result["name"] == "JPY Account"
+            assert result["currency"] == "JPY"
+            assert result["balance"] == 100000.00
+            assert result["description"] == "JPY test account"
+            assert result["default_currency"] == "EUR"
+            
+            # Verify conversion fields are None when exchange rates are missing
+            assert result["balance_in_default_currency"] is None
+            assert result["exchange_rate_used"] is None
 
     def test_enrich_account_with_none_description(self):
         """Test enrichment when account has None description"""
