@@ -1,6 +1,5 @@
 from decimal import Decimal
 from typing import Any
-from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -35,9 +34,7 @@ def read_accounts(
     total = crud.account.count(db)
 
     enrichment_service = AccountEnrichmentService(db)
-    enriched_accounts = [
-        enrichment_service.enrich_account_full(account) for account in accounts
-    ]
+    enriched_accounts = [enrichment_service.enrich_account_full(account) for account in accounts]
 
     return {
         "items": enriched_accounts,
