@@ -1,19 +1,20 @@
-name: Copilot Setup Steps
+name: "Copilot Setup Steps"
 
 on:
-  workflow_call:
-
-permissions:
-  contents: read
-
-concurrency:
-  group: copilot-setup-${{ github.ref }}
-  cancel-in-progress: false
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
 
 jobs:
   copilot-setup-steps:
     name: Prepare Copilot Dev Environment
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -103,4 +104,4 @@ jobs:
           echo "- Setup method: make setup" >> $GITHUB_STEP_SUMMARY
           echo "- Backend deps installed: yes" >> $GITHUB_STEP_SUMMARY
           echo "- Frontend deps installed: yes" >> $GITHUB_STEP_SUMMARY
-          echo "- Frontend deps installed: yes" >> $GITHUB_STEP_SUMMARY
+          echo "- Pre-commit hooks installed: yes" >> $GITHUB_STEP_SUMMARY

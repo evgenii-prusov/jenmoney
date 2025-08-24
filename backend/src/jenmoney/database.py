@@ -37,9 +37,9 @@ def init_db() -> None:
     from jenmoney.models import Account, Category, CurrencyRate, Transfer, UserSettings  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
-    
+
     # Initialize default exchange rates if none exist
     from jenmoney.utils.default_data import initialize_default_exchange_rates
-    
+
     with SessionLocal() as db:
         initialize_default_exchange_rates(db)

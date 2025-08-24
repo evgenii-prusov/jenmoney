@@ -66,7 +66,7 @@ export const TransfersPage: React.FC = () => {
   } = useQuery({
     queryKey: ['transfers', transferParams],
     queryFn: () => transfersApi.getTransfers(transferParams),
-    refetchInterval: 5000, // Auto-refresh every 5 seconds like accounts
+    refetchInterval: 20000, // Auto-refresh every 20 seconds like accounts
   });
 
   // Fetch accounts for filter dropdown and transfer form
@@ -76,7 +76,7 @@ export const TransfersPage: React.FC = () => {
   } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => accountsApi.getAccounts(),
-    refetchInterval: 5000,
+    refetchInterval: 20000,
   });
 
   const transfers = transfersData?.items || [];
