@@ -70,18 +70,27 @@ export const AccountCard: React.FC<AccountCardProps> = ({
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              maxWidth: '70%',
+              maxWidth: '50%',
             }}
           >
             {account.name}
           </Typography>
-          <Chip
-            label={account.currency}
-            size="small"
-            color="primary"
-            variant="outlined"
-            sx={{ fontWeight: 600 }}
-          />
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Chip
+              label={account.currency}
+              size="small"
+              color="primary"
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
+            />
+            <Chip
+              label={`${(account.percentage_of_total * 100).toFixed(0)}%`}
+              size="small"
+              color="default"
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
+            />
+          </Box>
         </Box>
 
         <Typography
