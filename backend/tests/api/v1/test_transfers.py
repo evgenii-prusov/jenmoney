@@ -10,20 +10,17 @@ from jenmoney.main import app
 from jenmoney.services.transfer_service import TransferService
 
 
-client = TestClient(app)
-
-
 class TestTransferCreate:
     """Test transfer creation."""
 
-    def test_create_transfer_same_currency(self, db: Session, sample_accounts):
+    def test_create_transfer_same_currency(self, db_session: Session, client, sample_accounts):
         """Test creating a transfer between accounts with same currency."""
         account_1, account_2 = sample_accounts
         
         # Update balances
         account_1.balance = Decimal("1000.00")
         account_2.balance = Decimal("500.00")
-        db.commit()
+        db_session.commit()
         
         transfer_data = {
             "from_account_id": account_1.id,
@@ -47,18 +44,18 @@ class TestTransferCreate:
         assert data["description"] == "Test transfer"
         
         # Check account balances were updated
-        db.refresh(account_1)
-        db.refresh(account_2)
+        db_session.refresh(account_1)
+        db_session.refresh(account_2)
         assert account_1.balance == Decimal("900.00")
         assert account_2.balance == Decimal("600.00")
 
-    def test_create_transfer_insufficient_funds(self, db: Session, sample_accounts):
+    def test_create_transfer_insufficient_funds(self, client, db_session: Session, sample_accounts):
         """Test creating a transfer with insufficient funds."""
         account_1, account_2 = sample_accounts
         
         # Set low balance
         account_1.balance = Decimal("50.00")
-        db.commit()
+        db_session.commit()
         
         transfer_data = {
             "from_account_id": account_1.id,
@@ -70,7 +67,7 @@ class TestTransferCreate:
         assert response.status_code == 400
         assert "Insufficient funds" in response.json()["detail"]
 
-    def test_create_transfer_same_account(self, db: Session, sample_accounts):
+    def test_create_transfer_same_account(self, client, db_session: Session, sample_accounts):
         """Test creating a transfer to the same account (should fail)."""
         account_1, _ = sample_accounts
         
@@ -83,7 +80,7 @@ class TestTransferCreate:
         response = client.post("/api/v1/transfers/", json=transfer_data)
         assert response.status_code == 422  # Validation error
 
-    def test_create_transfer_nonexistent_account(self, db: Session, sample_accounts):
+    def test_create_transfer_nonexistent_account(self, client, db_session: Session, sample_accounts):
         """Test creating a transfer with nonexistent account."""
         account_1, _ = sample_accounts
         
@@ -97,7 +94,7 @@ class TestTransferCreate:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"]
 
-    def test_create_transfer_negative_amount(self, db: Session, sample_accounts):
+    def test_create_transfer_negative_amount(self, client, db_session: Session, sample_accounts):
         """Test creating a transfer with negative amount."""
         account_1, account_2 = sample_accounts
         
@@ -110,7 +107,7 @@ class TestTransferCreate:
         response = client.post("/api/v1/transfers/", json=transfer_data)
         assert response.status_code == 422  # Validation error
 
-    def test_create_transfer_zero_amount(self, db: Session, sample_accounts):
+    def test_create_transfer_zero_amount(self, client, db_session: Session, sample_accounts):
         """Test creating a transfer with zero amount."""
         account_1, account_2 = sample_accounts
         
@@ -127,7 +124,7 @@ class TestTransferCreate:
 class TestTransferList:
     """Test transfer listing."""
 
-    def test_get_transfers_empty(self, db: Session):
+    def test_get_transfers_empty(self, client):
         """Test getting transfers when none exist."""
         response = client.get("/api/v1/transfers/")
         assert response.status_code == 200
@@ -136,7 +133,7 @@ class TestTransferList:
         assert data["items"] == []
         assert data["total"] == 0
 
-    def test_get_transfers_with_data(self, db: Session, sample_transfers):
+    def test_get_transfers_with_data(self, client, db_session: Session, sample_transfers):
         """Test getting transfers when data exists."""
         response = client.get("/api/v1/transfers/")
         assert response.status_code == 200
@@ -154,7 +151,7 @@ class TestTransferList:
         assert "to_amount" in transfer_item
         assert "status" in transfer_item
 
-    def test_get_transfers_pagination(self, db: Session, sample_transfers):
+    def test_get_transfers_pagination(self, client, db_session: Session, sample_transfers):
         """Test transfer pagination."""
         response = client.get("/api/v1/transfers/?skip=0&limit=2")
         assert response.status_code == 200
@@ -165,7 +162,7 @@ class TestTransferList:
         assert data["page"] == 1
         assert data["size"] == 2
 
-    def test_get_transfers_by_account(self, db: Session, sample_transfers):
+    def test_get_transfers_by_account(self, client, db_session: Session, sample_transfers):
         """Test filtering transfers by account ID."""
         # Get first transfer to know an account ID
         first_transfer = sample_transfers[0]
@@ -183,7 +180,7 @@ class TestTransferList:
 class TestTransferGet:
     """Test getting individual transfers."""
 
-    def test_get_transfer_by_id(self, db: Session, sample_transfers):
+    def test_get_transfer_by_id(self, client, db_session: Session, sample_transfers):
         """Test getting a transfer by ID."""
         transfer = sample_transfers[0]
         
@@ -195,7 +192,7 @@ class TestTransferGet:
         assert data["from_account_id"] == transfer.from_account_id
         assert data["to_account_id"] == transfer.to_account_id
 
-    def test_get_transfer_not_found(self, db: Session):
+    def test_get_transfer_not_found(self, client):
         """Test getting a non-existent transfer."""
         response = client.get("/api/v1/transfers/9999")
         assert response.status_code == 404
@@ -205,7 +202,7 @@ class TestTransferGet:
 class TestTransferUpdate:
     """Test transfer updates."""
 
-    def test_update_transfer_description(self, db: Session, sample_transfers):
+    def test_update_transfer_description(self, client, db_session: Session, sample_transfers):
         """Test updating transfer description."""
         transfer = sample_transfers[0]
         
@@ -219,13 +216,13 @@ class TestTransferUpdate:
         data = response.json()
         assert data["description"] == "Updated description"
 
-    def test_update_transfer_status(self, db: Session, sample_transfers):
+    def test_update_transfer_status(self, client, db_session: Session, sample_transfers):
         """Test updating transfer status."""
         # Create a pending transfer first
-        transfer_service = TransferService(db)
+        transfer_service = TransferService(db_session)
         transfer = sample_transfers[0]
         transfer.status = "pending"
-        db.commit()
+        db_session.commit()
         
         update_data = {
             "status": "cancelled"
@@ -237,7 +234,7 @@ class TestTransferUpdate:
         data = response.json()
         assert data["status"] == "cancelled"
 
-    def test_update_transfer_not_found(self, db: Session):
+    def test_update_transfer_not_found(self, client):
         """Test updating a non-existent transfer."""
         update_data = {
             "description": "Updated description"
@@ -250,14 +247,14 @@ class TestTransferUpdate:
 class TestTransferIntegration:
     """Integration tests for transfers."""
 
-    def test_transfer_workflow(self, db: Session, sample_accounts):
+    def test_transfer_workflow(self, client, db_session: Session, sample_accounts):
         """Test complete transfer workflow."""
         account_1, account_2 = sample_accounts
         
         # Set initial balances
         account_1.balance = Decimal("1000.00")
         account_2.balance = Decimal("500.00")
-        db.commit()
+        db_session.commit()
         
         # Create transfer
         transfer_data = {
@@ -272,8 +269,8 @@ class TestTransferIntegration:
         transfer_id = create_response.json()["id"]
         
         # Verify balances
-        db.refresh(account_1)
-        db.refresh(account_2)
+        db_session.refresh(account_1)
+        db_session.refresh(account_2)
         assert account_1.balance == Decimal("750.00")
         assert account_2.balance == Decimal("750.00")
         

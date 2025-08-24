@@ -19,23 +19,27 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def override_get_db():
+@pytest.fixture(scope="function")
+def db_session():
+    """Create a database session."""
+    Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
     try:
         yield db
     finally:
         db.close()
+        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
-def db():
-    Base.metadata.create_all(bind=engine)
-    yield TestingSessionLocal()
-    Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture
-def client():
+def client(db_session):
+    """Create a test client."""
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+    
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as c:
         yield c
@@ -43,11 +47,11 @@ def client():
 
 
 @pytest.fixture
-def sample_accounts(db: Session):
+def sample_accounts(db_session: Session):
     """Create sample accounts for testing."""
     # Create two accounts
     account_1 = crud.account.create(
-        db=db,
+        db=db_session,
         obj_in=schemas.AccountCreate(
             name="Test Account 1",
             currency="EUR",
@@ -57,7 +61,7 @@ def sample_accounts(db: Session):
     )
     
     account_2 = crud.account.create(
-        db=db,
+        db=db_session,
         obj_in=schemas.AccountCreate(
             name="Test Account 2", 
             currency="EUR",
@@ -70,7 +74,7 @@ def sample_accounts(db: Session):
 
 
 @pytest.fixture
-def sample_transfers(db: Session, sample_accounts):
+def sample_transfers(db_session: Session, sample_accounts):
     """Create sample transfers for testing."""
     account_1, account_2 = sample_accounts
     
@@ -99,8 +103,8 @@ def sample_transfers(db: Session, sample_accounts):
         status="completed"
     )
     
-    db.add(transfer_1)
-    db.add(transfer_2)
-    db.commit()
+    db_session.add(transfer_1)
+    db_session.add(transfer_2)
+    db_session.commit()
     
     return [transfer_1, transfer_2]
