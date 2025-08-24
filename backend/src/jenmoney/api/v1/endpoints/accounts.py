@@ -10,44 +10,9 @@ from jenmoney.crud.user_settings import user_settings
 from jenmoney.database import get_db
 from jenmoney.services.currency_service import CurrencyService
 from jenmoney.services.account_analytics_service import AccountAnalyticService
+from jenmoney.services.account_enrichment_service import AccountEnrichmentService
 
 router = APIRouter()
-
-
-def enrich_account_with_conversion(account: Any, db: Session) -> dict[str, Any]:
-    """Enrich account data with currency conversion information."""
-    settings = user_settings.get_or_create(db)
-    account_dict = {
-        "id": account.id,
-        "name": account.name,
-        "currency": account.currency,
-        "balance": float(account.balance),
-        "description": account.description,
-        "created_at": account.created_at,
-        "updated_at": account.updated_at,
-        "default_currency": settings.default_currency,
-        "balance_in_default_currency": None,
-        "exchange_rate_used": None,
-    }
-
-    if account.currency != settings.default_currency:
-        currency_service = CurrencyService(db)
-        try:
-            rate = currency_service.get_current_rate(
-                str(account.currency), str(settings.default_currency)
-            )
-            converted_balance = currency_service.convert_amount(
-                Decimal(str(account.balance)),
-                str(account.currency),
-                str(settings.default_currency),
-            )
-            account_dict["balance_in_default_currency"] = float(converted_balance)
-            account_dict["exchange_rate_used"] = float(rate)
-        except Exception:
-            # If conversion fails, leave as None
-            pass
-
-    return account_dict
 
 
 @router.post("/", response_model=schemas.AccountResponse)
@@ -57,7 +22,8 @@ def create_account(
     account_in: schemas.AccountCreate,
 ) -> Any:
     account = crud.account.create(db=db, obj_in=account_in)
-    enriched_account = enrich_account_with_conversion(account, db)
+    enrichment_service = AccountEnrichmentService(db)
+    enriched_account = enrichment_service.enrich_account_with_conversion(account)
 
     # Add percentage calculation
     account_analytics_service = AccountAnalyticService()
@@ -77,7 +43,8 @@ def read_accounts(
     accounts = crud.account.get_multi(db, skip=skip, limit=limit)
     total = crud.account.count(db)
 
-    enriched_accounts = [enrich_account_with_conversion(account, db) for account in accounts]
+    enrichment_service = AccountEnrichmentService(db)
+    enriched_accounts = [enrichment_service.enrich_account_with_conversion(account) for account in accounts]
 
     account_analytics_service = AccountAnalyticService()
     for enriched_account in enriched_accounts:
@@ -101,7 +68,9 @@ def read_account(*, db: Session = Depends(get_db), account_id: int) -> Any:
 
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
-    enriched_account = enrich_account_with_conversion(account, db)
+    
+    enrichment_service = AccountEnrichmentService(db)
+    enriched_account = enrichment_service.enrich_account_with_conversion(account)
     enriched_account["percentage_of_total"] = account_analytics_service.get_account_percentage(
         db, account_id
     )
@@ -119,7 +88,9 @@ def update_account(
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
     account = crud.account.update(db=db, db_obj=account, obj_in=account_in)
-    enriched_account = enrich_account_with_conversion(account, db)
+    
+    enrichment_service = AccountEnrichmentService(db)
+    enriched_account = enrichment_service.enrich_account_with_conversion(account)
 
     # Add percentage calculation
     account_analytics_service = AccountAnalyticService()
@@ -140,8 +111,14 @@ def delete_account(*, db: Session = Depends(get_db), account_id: int) -> Any:
     account_analytics_service = AccountAnalyticService()
     percentage = account_analytics_service.get_account_percentage(db, account_id)
 
-    account = crud.account.delete(db=db, id=account_id)
-    enriched_account = enrich_account_with_conversion(account, db)
+    deleted_account = crud.account.delete(db=db, id=account_id)
+    
+    # Since we verified the account exists before deletion, it should never be None
+    if not deleted_account:
+        raise HTTPException(status_code=500, detail="Failed to delete account")
+    
+    enrichment_service = AccountEnrichmentService(db)
+    enriched_account = enrichment_service.enrich_account_with_conversion(deleted_account)
     enriched_account["percentage_of_total"] = percentage
 
     return enriched_account
