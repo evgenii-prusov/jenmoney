@@ -1,4 +1,4 @@
-.PHONY: help dev dev-backend dev-frontend stop-all clean-ports lint format typecheck test db-init db-clean clean install-backend install-frontend setup pr-check branch-new branch-sync
+.PHONY: help dev dev-backend dev-frontend stop-all clean-ports lint format typecheck test db-init db-clean clean install-backend install-frontend install-pre-commit setup pr-check branch-new branch-sync
 
 # Default target
 help: ## Show this help message
@@ -69,6 +69,7 @@ setup: ## Complete project setup (deps + database)
 	@echo "Setting up JenMoney project..."
 	@make install-backend
 	@make install-frontend
+	@make install-pre-commit
 	@make db-init
 	@echo ""
 	@echo "✅ Setup complete! Run 'make dev' to start."
@@ -78,6 +79,9 @@ install-backend: ## Install Python dependencies
 
 install-frontend: ## Install Node dependencies
 	cd frontend && npm install
+
+install-pre-commit: ## Install pre-commit hooks
+	cd backend && uv run pre-commit install
 
 # ============ Cleanup ============
 clean: ## Clean cache files and build artifacts
