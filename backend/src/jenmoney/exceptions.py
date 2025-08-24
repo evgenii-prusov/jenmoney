@@ -69,3 +69,21 @@ class ExchangeRateNotFoundError(CurrencyConversionError):
             to_currency=to_currency,
         )
         self.date = date
+
+
+class TransferValidationError(Exception):
+    """Raised when transfer validation fails."""
+
+    pass
+
+
+class InsufficientFundsError(TransferValidationError):
+    """Raised when source account has insufficient funds."""
+
+    pass
+
+
+class InvalidAccountError(TransferValidationError):
+    """Raised when account does not exist or is invalid."""
+
+    pass

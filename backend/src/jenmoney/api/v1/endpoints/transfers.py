@@ -5,12 +5,12 @@ from sqlalchemy.orm import Session
 
 from jenmoney import crud, schemas, models
 from jenmoney.database import get_db
-from jenmoney.services.transfer_service import (
-    TransferService,
+from jenmoney.exceptions import (
     TransferValidationError,
     InsufficientFundsError,
     InvalidAccountError,
 )
+from jenmoney.services.transfer_service import TransferService
 
 router = APIRouter()
 
@@ -26,7 +26,6 @@ def _convert_transfer_to_response(transfer: models.Transfer) -> schemas.Transfer
         from_currency=transfer.from_currency,  # type: ignore
         to_currency=transfer.to_currency,  # type: ignore
         exchange_rate=float(transfer.exchange_rate) if transfer.exchange_rate else None,
-        status=transfer.status,  # type: ignore
         description=transfer.description,  # type: ignore
         created_at=transfer.created_at,  # type: ignore
         updated_at=transfer.updated_at,  # type: ignore
@@ -109,15 +108,12 @@ def update_transfer(
     transfer_id: int,
     transfer_in: schemas.TransferUpdate,
 ) -> Any:
-    """Update a transfer (limited to status and description)."""
+    """Update a transfer (limited to description only)."""
     transfer = crud.transfer.get(db=db, id=transfer_id)
     if not transfer:
         raise HTTPException(status_code=404, detail="Transfer not found")
 
-    # Only allow updating certain fields after creation
-    if transfer.status == "completed" and transfer_in.status in ["cancelled", "failed"]:
-        raise HTTPException(status_code=400, detail="Cannot change status of completed transfer")
-
+    # Only allow updating description after creation
     transfer = crud.transfer.update(db=db, db_obj=transfer, obj_in=transfer_in)
 
     return _convert_transfer_to_response(transfer)
