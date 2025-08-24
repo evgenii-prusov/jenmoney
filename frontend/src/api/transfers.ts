@@ -3,12 +3,18 @@ import type { Transfer, TransferCreate } from '../types/transfer';
 
 const TRANSFERS_ENDPOINT = '/transfers/';
 
-interface TransferListResponse {
+export interface TransferListResponse {
   items: Transfer[];
   total: number;
   page: number;
   size: number;
   pages: number;
+}
+
+export interface TransferListParams {
+  skip?: number;
+  limit?: number;
+  account_id?: number;
 }
 
 export const transfersApi = {
@@ -17,9 +23,11 @@ export const transfersApi = {
     return data;
   },
 
-  getTransfers: async (): Promise<Transfer[]> => {
-    const { data } = await apiClient.get<TransferListResponse>(TRANSFERS_ENDPOINT);
-    return data.items;
+  getTransfers: async (params?: TransferListParams): Promise<TransferListResponse> => {
+    const { data } = await apiClient.get<TransferListResponse>(TRANSFERS_ENDPOINT, {
+      params,
+    });
+    return data;
   },
 };
 

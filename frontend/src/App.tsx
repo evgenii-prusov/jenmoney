@@ -1,12 +1,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { createRouter, RouterProvider } from '@tanstack/react-router';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { SnackbarProvider } from 'notistack';
-import { AppLayout } from './layouts/AppLayout';
-import { AccountsPage } from './features/accounts/AccountsPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { theme } from './theme/solarizedLight';
+
+// Import the generated route tree
+import { routeTree } from './routeTree.gen';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,6 +18,16 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Create a new router instance
+const router = createRouter({ routeTree });
+
+// Register the router instance for type safety
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router;
+  }
+}
 
 function App() {
   return (
@@ -31,9 +43,7 @@ function App() {
           autoHideDuration={3000}
         >
           <ErrorBoundary>
-            <AppLayout>
-              <AccountsPage />
-            </AppLayout>
+            <RouterProvider router={router} />
           </ErrorBoundary>
         </SnackbarProvider>
       </ThemeProvider>
