@@ -161,7 +161,7 @@ class TransferService:
 
         # If updating amounts, use the complex update method
         update_data = transfer_in.model_dump(exclude_unset=True)
-        if 'from_amount' in update_data or 'to_amount' in update_data:
+        if "from_amount" in update_data or "to_amount" in update_data:
             # Amount update requires balance recalculation
             return self._update_transfer_with_amounts(transfer, transfer_in)
         else:
@@ -188,9 +188,15 @@ class TransferService:
 
             # Calculate new amounts
             update_data = transfer_in.model_dump(exclude_unset=True)
-            new_from_amount = Decimal(str(update_data['from_amount'])) if 'from_amount' in update_data else transfer.from_amount
-            user_to_amount = Decimal(str(update_data['to_amount'])) if 'to_amount' in update_data else None
-            
+            new_from_amount = (
+                Decimal(str(update_data["from_amount"]))
+                if "from_amount" in update_data
+                else transfer.from_amount
+            )
+            user_to_amount = (
+                Decimal(str(update_data["to_amount"])) if "to_amount" in update_data else None
+            )
+
             new_to_amount, new_exchange_rate = self._calculate_destination_amount(
                 from_amount=new_from_amount,
                 from_currency=str(from_account.currency),
@@ -210,9 +216,9 @@ class TransferService:
             to_account.balance = to_account.balance + new_to_amount  # type: ignore
 
             # Update transfer record
-            update_data['from_amount'] = new_from_amount
-            update_data['to_amount'] = new_to_amount
-            update_data['exchange_rate'] = new_exchange_rate
+            update_data["from_amount"] = new_from_amount
+            update_data["to_amount"] = new_to_amount
+            update_data["exchange_rate"] = new_exchange_rate
 
             for field, value in update_data.items():
                 setattr(transfer, field, value)

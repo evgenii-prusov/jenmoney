@@ -103,4 +103,4 @@ jobs:
           echo "- Setup method: make setup" >> $GITHUB_STEP_SUMMARY
           echo "- Backend deps installed: yes" >> $GITHUB_STEP_SUMMARY
           echo "- Frontend deps installed: yes" >> $GITHUB_STEP_SUMMARY
-          echo "- Frontend deps installed: yes" >> $GITHUB_STEP_SUMMARY
+          echo "- Pre-commit hooks installed: yes" >> $GITHUB_STEP_SUMMARY

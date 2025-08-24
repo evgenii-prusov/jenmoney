@@ -111,7 +111,9 @@ def update_transfer(
     """Update a transfer (description and/or amounts)."""
     try:
         transfer_service = TransferService(db)
-        transfer = transfer_service.update_transfer(transfer_id=transfer_id, transfer_in=transfer_in)
+        transfer = transfer_service.update_transfer(
+            transfer_id=transfer_id, transfer_in=transfer_in
+        )
         return _convert_transfer_to_response(transfer)
 
     except InvalidAccountError as e:
