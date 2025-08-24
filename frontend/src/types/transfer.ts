@@ -24,6 +24,8 @@ export interface TransferCreate {
 
 export interface TransferUpdate {
   description?: string | null;
+  from_amount?: number;
+  to_amount?: number;
 }
 
 export interface TransferFormData {

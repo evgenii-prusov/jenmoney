@@ -214,6 +214,83 @@ class TestTransferUpdate:
         data = response.json()
         assert data["description"] == "Updated description"
 
+    def test_update_transfer_amount(self, client, db_session: Session, sample_accounts):
+        """Test updating transfer amount with balance adjustments."""
+        account_1, account_2 = sample_accounts
+        
+        # Set initial balances
+        account_1.balance = Decimal("1000.00")
+        account_2.balance = Decimal("500.00")
+        db_session.commit()
+        
+        # Create transfer
+        transfer_data = {
+            "from_account_id": account_1.id,
+            "to_account_id": account_2.id,
+            "from_amount": 250.00,
+            "description": "Test transfer"
+        }
+        
+        create_response = client.post("/api/v1/transfers/", json=transfer_data)
+        assert create_response.status_code == 200
+        transfer_id = create_response.json()["id"]
+        
+        # Verify balances after creation
+        db_session.refresh(account_1)
+        db_session.refresh(account_2)
+        assert account_1.balance == Decimal("750.00")
+        assert account_2.balance == Decimal("750.00")
+        
+        # Update transfer amount
+        update_data = {
+            "from_amount": 100.00,
+            "description": "Updated transfer"
+        }
+        
+        response = client.patch(f"/api/v1/transfers/{transfer_id}", json=update_data)
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data["from_amount"] == 100.00
+        assert data["to_amount"] == 100.00  # Same currency
+        assert data["description"] == "Updated transfer"
+        
+        # Verify balances were updated correctly
+        db_session.refresh(account_1)
+        db_session.refresh(account_2)
+        assert account_1.balance == Decimal("900.00")  # 1000 - 100
+        assert account_2.balance == Decimal("600.00")  # 500 + 100
+
+    def test_update_transfer_insufficient_funds(self, client, db_session: Session, sample_accounts):
+        """Test updating transfer amount with insufficient funds."""
+        account_1, account_2 = sample_accounts
+        
+        # Set low balance
+        account_1.balance = Decimal("200.00")
+        account_2.balance = Decimal("500.00")
+        db_session.commit()
+        
+        # Create transfer
+        transfer_data = {
+            "from_account_id": account_1.id,
+            "to_account_id": account_2.id,
+            "from_amount": 150.00,
+            "description": "Test transfer"
+        }
+        
+        create_response = client.post("/api/v1/transfers/", json=transfer_data)
+        assert create_response.status_code == 200
+        transfer_id = create_response.json()["id"]
+        
+        # Try to update to amount that would cause insufficient funds
+        update_data = {
+            "from_amount": 300.00  # More than available after reversal
+        }
+        
+        response = client.patch(f"/api/v1/transfers/{transfer_id}", json=update_data)
+        assert response.status_code == 400
+        assert "Insufficient funds" in response.json()["detail"]
+
     def test_update_transfer_not_found(self, client):
         """Test updating a non-existent transfer."""
         update_data = {
@@ -222,6 +299,114 @@ class TestTransferUpdate:
         
         response = client.patch("/api/v1/transfers/9999", json=update_data)
         assert response.status_code == 404
+
+
+class TestTransferDelete:
+    """Test transfer deletion."""
+
+    def test_delete_transfer_balances_updated(self, client, db_session: Session, sample_accounts):
+        """Test that deleting a transfer correctly reverses account balance changes."""
+        account_1, account_2 = sample_accounts
+        
+        # Set initial balances
+        initial_balance_1 = Decimal("1000.00")
+        initial_balance_2 = Decimal("500.00")
+        account_1.balance = initial_balance_1
+        account_2.balance = initial_balance_2
+        db_session.commit()
+        
+        # Create transfer
+        transfer_data = {
+            "from_account_id": account_1.id,
+            "to_account_id": account_2.id,
+            "from_amount": 250.00,
+            "description": "Test transfer for deletion"
+        }
+        
+        create_response = client.post("/api/v1/transfers/", json=transfer_data)
+        assert create_response.status_code == 200
+        transfer_id = create_response.json()["id"]
+        
+        # Verify balances changed after creation
+        db_session.refresh(account_1)
+        db_session.refresh(account_2)
+        assert account_1.balance == Decimal("750.00")
+        assert account_2.balance == Decimal("750.00")
+        
+        # Delete transfer
+        delete_response = client.delete(f"/api/v1/transfers/{transfer_id}")
+        assert delete_response.status_code == 200
+        
+        # Verify balances are reverted to original after deletion
+        db_session.refresh(account_1)
+        db_session.refresh(account_2)
+        assert account_1.balance == initial_balance_1
+        assert account_2.balance == initial_balance_2
+        
+        # Verify transfer is actually deleted
+        get_response = client.get(f"/api/v1/transfers/{transfer_id}")
+        assert get_response.status_code == 404
+
+    def test_delete_transfer_not_found(self, client):
+        """Test deleting a non-existent transfer."""
+        response = client.delete("/api/v1/transfers/9999")
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"]
+
+    def test_delete_transfer_multi_currency(self, client, db_session: Session, sample_currency_rates):
+        """Test deleting a multi-currency transfer correctly reverses balance changes."""
+        # Create EUR and USD accounts
+        eur_account = crud.account.create(
+            db=db_session,
+            obj_in=schemas.AccountCreate(
+                name="EUR Account",
+                currency="EUR",
+                balance=1000.00,
+                description="EUR test account"
+            )
+        )
+        
+        usd_account = crud.account.create(
+            db=db_session,
+            obj_in=schemas.AccountCreate(
+                name="USD Account", 
+                currency="USD",
+                balance=500.00,
+                description="USD test account"
+            )
+        )
+        
+        # Create multi-currency transfer
+        transfer_data = {
+            "from_account_id": eur_account.id,
+            "to_account_id": usd_account.id,
+            "from_amount": 100.00,  # 100 EUR
+            "description": "EUR to USD transfer"
+        }
+        
+        create_response = client.post("/api/v1/transfers/", json=transfer_data)
+        assert create_response.status_code == 200
+        transfer_id = create_response.json()["id"]
+        
+        # Get balances after creation
+        db_session.refresh(eur_account)
+        db_session.refresh(usd_account)
+        balance_eur_after_create = eur_account.balance
+        balance_usd_after_create = usd_account.balance
+        
+        # Expected: EUR reduced by 100, USD increased by 100 * 1.1 = 110 
+        assert balance_eur_after_create == Decimal("900.00")
+        assert balance_usd_after_create == Decimal("610.00")
+        
+        # Delete transfer
+        delete_response = client.delete(f"/api/v1/transfers/{transfer_id}")
+        assert delete_response.status_code == 200
+        
+        # Verify balances are reverted
+        db_session.refresh(eur_account)
+        db_session.refresh(usd_account)
+        assert eur_account.balance == Decimal("1000.00")
+        assert usd_account.balance == Decimal("500.00")
 
 
 class TestTransferIntegration:

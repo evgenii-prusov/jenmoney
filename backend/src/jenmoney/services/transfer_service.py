@@ -12,7 +12,7 @@ from jenmoney.exceptions import (
     InsufficientFundsError,
     InvalidAccountError,
 )
-from jenmoney.schemas.transfer import TransferCreate
+from jenmoney.schemas.transfer import TransferCreate, TransferUpdate
 from jenmoney.services.currency_service import CurrencyService
 
 
@@ -84,6 +84,138 @@ class TransferService:
             # Update account balances
             from_account.balance = from_account.balance - from_amount  # type: ignore
             to_account.balance = to_account.balance + to_amount  # type: ignore
+
+            # Commit all changes atomically
+            self.db.commit()
+            self.db.refresh(transfer)
+
+            return transfer
+
+        except Exception as e:
+            self.db.rollback()
+            raise e
+
+    def delete_transfer(self, *, transfer_id: int) -> models.Transfer:
+        """Delete a transfer and reverse account balance changes.
+
+        Args:
+            transfer_id: ID of the transfer to delete
+
+        Returns:
+            The deleted transfer object
+
+        Raises:
+            InvalidAccountError: If transfer or accounts don't exist
+        """
+        # Get the transfer
+        transfer = crud.transfer.get(self.db, id=transfer_id)
+        if not transfer:
+            raise InvalidAccountError(f"Transfer {transfer_id} not found")
+
+        # Get the accounts
+        from_account = crud.account.get(self.db, id=transfer.from_account_id)
+        to_account = crud.account.get(self.db, id=transfer.to_account_id)
+
+        if not from_account:
+            raise InvalidAccountError(f"Source account {transfer.from_account_id} not found")
+        if not to_account:
+            raise InvalidAccountError(f"Destination account {transfer.to_account_id} not found")
+
+        try:
+            # Reverse the account balance changes
+            # Add back the from_amount to the from_account
+            from_account.balance = from_account.balance + transfer.from_amount  # type: ignore
+            # Subtract the to_amount from the to_account
+            to_account.balance = to_account.balance - transfer.to_amount  # type: ignore
+
+            # Delete the transfer
+            self.db.delete(transfer)
+
+            # Commit all changes atomically
+            self.db.commit()
+
+            return transfer
+
+        except Exception as e:
+            self.db.rollback()
+            raise e
+
+    def update_transfer(self, *, transfer_id: int, transfer_in: TransferUpdate) -> models.Transfer:
+        """Update a transfer with potential balance adjustments.
+
+        Args:
+            transfer_id: ID of the transfer to update
+            transfer_in: Transfer update data
+
+        Returns:
+            Updated transfer object
+
+        Raises:
+            InvalidAccountError: If transfer or accounts don't exist
+            InsufficientFundsError: If account would have insufficient funds after update
+        """
+        # Get the transfer
+        transfer = crud.transfer.get(self.db, id=transfer_id)
+        if not transfer:
+            raise InvalidAccountError(f"Transfer {transfer_id} not found")
+
+        # If updating amounts, use the complex update method
+        update_data = transfer_in.model_dump(exclude_unset=True)
+        if 'from_amount' in update_data or 'to_amount' in update_data:
+            # Amount update requires balance recalculation
+            return self._update_transfer_with_amounts(transfer, transfer_in)
+        else:
+            # Simple description-only update
+            return crud.transfer.update(self.db, db_obj=transfer, obj_in=transfer_in)
+
+    def _update_transfer_with_amounts(
+        self, transfer: models.Transfer, transfer_in: TransferUpdate
+    ) -> models.Transfer:
+        """Update transfer with amount changes and balance adjustments."""
+        # Get the accounts
+        from_account = crud.account.get(self.db, id=transfer.from_account_id)
+        to_account = crud.account.get(self.db, id=transfer.to_account_id)
+
+        if not from_account:
+            raise InvalidAccountError(f"Source account {transfer.from_account_id} not found")
+        if not to_account:
+            raise InvalidAccountError(f"Destination account {transfer.to_account_id} not found")
+
+        try:
+            # First, reverse the current transfer's impact on balances
+            from_account.balance = from_account.balance + transfer.from_amount  # type: ignore
+            to_account.balance = to_account.balance - transfer.to_amount  # type: ignore
+
+            # Calculate new amounts
+            update_data = transfer_in.model_dump(exclude_unset=True)
+            new_from_amount = Decimal(str(update_data['from_amount'])) if 'from_amount' in update_data else transfer.from_amount
+            user_to_amount = Decimal(str(update_data['to_amount'])) if 'to_amount' in update_data else None
+            
+            new_to_amount, new_exchange_rate = self._calculate_destination_amount(
+                from_amount=new_from_amount,
+                from_currency=str(from_account.currency),
+                to_currency=str(to_account.currency),
+                user_to_amount=user_to_amount,
+            )
+
+            # Validate sufficient funds with new amount
+            if from_account.balance < new_from_amount:
+                raise InsufficientFundsError(
+                    f"Insufficient funds in account {from_account.name}. "
+                    f"Available: {from_account.balance}, Required: {new_from_amount}"
+                )
+
+            # Apply new balance changes
+            from_account.balance = from_account.balance - new_from_amount  # type: ignore
+            to_account.balance = to_account.balance + new_to_amount  # type: ignore
+
+            # Update transfer record
+            update_data['from_amount'] = new_from_amount
+            update_data['to_amount'] = new_to_amount
+            update_data['exchange_rate'] = new_exchange_rate
+
+            for field, value in update_data.items():
+                setattr(transfer, field, value)
 
             # Commit all changes atomically
             self.db.commit()

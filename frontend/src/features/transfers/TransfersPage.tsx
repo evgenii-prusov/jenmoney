@@ -292,7 +292,7 @@ export const TransfersPage: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={0.5}>
-                        <Tooltip title="Edit description">
+                        <Tooltip title="Edit transfer">
                           <IconButton
                             size="small"
                             onClick={() => handleEditTransfer(transfer)}
@@ -349,6 +349,7 @@ export const TransfersPage: React.FC = () => {
         }}
         onSubmit={handleUpdateTransfer}
         transfer={selectedTransfer}
+        accounts={accounts}
       />
 
       {/* Delete Transfer Dialog */}
