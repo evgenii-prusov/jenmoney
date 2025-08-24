@@ -23,8 +23,8 @@ const currencySymbols: Record<Currency, string> = {
 const formatBalance = (balance: number, currency: Currency): string => {
   const symbol = currencySymbols[currency];
   const formattedNumber = balance.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   });
   
   if (currency === Currency.EUR) {
