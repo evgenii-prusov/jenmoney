@@ -78,8 +78,7 @@ def create_tables():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS user_settings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            key VARCHAR(100) NOT NULL UNIQUE,
-            value TEXT,
+            default_currency VARCHAR(3) NOT NULL DEFAULT 'USD',
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
@@ -89,10 +88,11 @@ def create_tables():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS currency_rates (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            from_currency VARCHAR(3) NOT NULL,
-            to_currency VARCHAR(3) NOT NULL,
+            currency_from VARCHAR(3) NOT NULL,
+            currency_to VARCHAR(3) NOT NULL DEFAULT 'USD',
             rate DECIMAL(15,6) NOT NULL,
-            effective_date DATE NOT NULL,
+            effective_from DATETIME NOT NULL,
+            effective_to DATETIME,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
@@ -115,20 +115,20 @@ def create_tables():
     
     # Insert default user settings
     cursor.execute("""
-        INSERT OR IGNORE INTO user_settings (key, value) 
-        VALUES ('default_currency', 'USD')
+        INSERT OR IGNORE INTO user_settings (id, default_currency) 
+        VALUES (1, 'USD')
     """)
     
     # Insert some basic exchange rates
     cursor.execute("""
-        INSERT OR IGNORE INTO currency_rates (from_currency, to_currency, rate, effective_date)
+        INSERT OR IGNORE INTO currency_rates (currency_from, currency_to, rate, effective_from)
         VALUES 
-            ('EUR', 'USD', 1.1, date('now')),
-            ('USD', 'EUR', 0.91, date('now')),
-            ('RUB', 'USD', 0.011, date('now')),
-            ('USD', 'RUB', 91.0, date('now')),
-            ('JPY', 'USD', 0.0067, date('now')),
-            ('USD', 'JPY', 149.0, date('now'))
+            ('EUR', 'USD', 1.1, datetime('now')),
+            ('USD', 'EUR', 0.91, datetime('now')),
+            ('RUB', 'USD', 0.011, datetime('now')),
+            ('USD', 'RUB', 91.0, datetime('now')),
+            ('JPY', 'USD', 0.0067, datetime('now')),
+            ('USD', 'JPY', 149.0, datetime('now'))
     """)
     
     # Commit changes
