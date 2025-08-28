@@ -29,6 +29,7 @@ import {
   TrendingDown as ExpenseIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  SubdirectoryArrowRight as SubdirectoryArrowRightIcon,
 } from '@mui/icons-material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { transactionsApi, type TransactionListParams } from '../../api/transactions';
@@ -79,10 +80,10 @@ export const TransactionsPage: React.FC = () => {
     queryFn: () => accountsApi.getAccounts({ limit: 100 }),
   });
 
-  // Categories query for filter dropdown
+  // Categories query for filter dropdown (hierarchical for better UX)
   const { data: categoriesResponse } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => categoriesApi.getCategories(),
+    queryKey: ['categories', 'hierarchical'],
+    queryFn: () => categoriesApi.getCategories(true),
   });
 
   const transactions = transactionsResponse?.items || [];
@@ -96,10 +97,57 @@ export const TransactionsPage: React.FC = () => {
     return acc;
   }, {});
 
+  // Create categories map from hierarchical data (include both parent and children)
   const categoriesMap = categories.reduce((acc: Record<number, Category>, category) => {
     acc[category.id] = category;
+    // Also add children to the map
+    category.children?.forEach((child) => {
+      acc[child.id] = child;
+    });
     return acc;
   }, {});
+
+  // Helper function to render categories with hierarchy in dropdown
+  const renderCategoryMenuItems = () => {
+    const items: React.ReactNode[] = [];
+    
+    categories.forEach((category) => {
+      // Add parent category
+      items.push(
+        <MenuItem key={category.id} value={category.id}>
+          {category.name}
+        </MenuItem>
+      );
+      
+      // Add child categories with indentation
+      category.children?.forEach((child) => {
+        items.push(
+          <MenuItem 
+            key={child.id} 
+            value={child.id}
+            sx={{ 
+              pl: 4,
+              fontSize: '0.875rem',
+              color: 'text.secondary',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            <SubdirectoryArrowRightIcon 
+              sx={{ 
+                fontSize: '1rem',
+                color: 'action.active',
+              }} 
+            />
+            {child.name}
+          </MenuItem>
+        );
+      });
+    });
+    
+    return items;
+  };
 
   const handlePageChange = (_: unknown, newPage: number) => {
     setPage(newPage);
@@ -228,11 +276,7 @@ export const TransactionsPage: React.FC = () => {
               onChange={(e) => handleCategoryFilterChange(e.target.value as number | '')}
             >
               <MenuItem value="">All Categories</MenuItem>
-              {categories.map((category) => (
-                <MenuItem key={category.id} value={category.id}>
-                  {category.name}
-                </MenuItem>
-              ))}
+              {renderCategoryMenuItems()}
             </Select>
           </FormControl>
 

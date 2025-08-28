@@ -15,6 +15,7 @@ import {
   Chip,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
+import { SubdirectoryArrowRight as SubdirectoryArrowRightIcon } from '@mui/icons-material';
 import { transactionsApi } from '../api/transactions';
 import type { Transaction, TransactionUpdate } from '../types/transaction';
 import type { Account } from '../types/account';
@@ -100,10 +101,52 @@ export const EditTransactionDialog: React.FC<EditTransactionDialogProps> = ({
     return null;
   }
 
-  // Filter categories by type (income/expense)
-  const filteredCategories = categories.filter(cat => 
-    isExpense ? cat.type === 'expense' : cat.type === 'income'
-  );
+  // Helper function to render categories with hierarchy in dropdown
+  const renderCategoryMenuItems = () => {
+    const items: React.ReactNode[] = [];
+    const categoryType = isExpense ? 'expense' : 'income';
+    
+    categories.forEach((category) => {
+      // Add parent category if it matches type
+      if (category.type === categoryType) {
+        items.push(
+          <MenuItem key={category.id} value={category.id}>
+            {category.name}
+          </MenuItem>
+        );
+      }
+      
+      // Add child categories with indentation if they match type
+      category.children?.forEach((child) => {
+        if (child.type === categoryType) {
+          items.push(
+            <MenuItem 
+              key={child.id} 
+              value={child.id}
+              sx={{ 
+                pl: 4,
+                fontSize: '0.875rem',
+                color: 'text.secondary',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
+              <SubdirectoryArrowRightIcon 
+                sx={{ 
+                  fontSize: '1rem',
+                  color: 'action.active',
+                }} 
+              />
+              {child.name}
+            </MenuItem>
+          );
+        }
+      });
+    });
+    
+    return items;
+  };
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
@@ -173,11 +216,7 @@ export const EditTransactionDialog: React.FC<EditTransactionDialogProps> = ({
               helperText="Optional"
             >
               <MenuItem value="">No Category</MenuItem>
-              {filteredCategories.map((category) => (
-                <MenuItem key={category.id} value={category.id}>
-                  {category.name}
-                </MenuItem>
-              ))}
+              {renderCategoryMenuItems()}
             </TextField>
 
             <TextField
