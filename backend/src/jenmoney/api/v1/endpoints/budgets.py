@@ -6,7 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from jenmoney import crud, schemas
+from jenmoney.crud.user_settings import user_settings
 from jenmoney.database import get_db
+from jenmoney.services.currency_service import CurrencyService
 
 router = APIRouter()
 
@@ -50,6 +52,10 @@ def read_budgets(
     budgets = crud.budget.get_by_period(db, year=year, month=month, skip=skip, limit=limit)
     total = crud.budget.count_by_period(db, year=year, month=month)
 
+    # Get user settings for default currency
+    settings = user_settings.get_or_create(db)
+    currency_service = CurrencyService(db)
+
     # Get actual spending for all categories in this period
     actual_spending = crud.budget.get_actual_spending_all_categories(db, year=year, month=month)
 
@@ -64,16 +70,32 @@ def read_budgets(
         response_data.actual_amount = actual_amount
         budget_responses.append(response_data)
 
-        total_planned += budget_obj.planned_amount
-        total_actual += actual_amount
+        # Convert amounts to default currency for summary totals
+        try:
+            planned_in_default = currency_service.convert_amount(
+                Decimal(str(budget_obj.planned_amount)),
+                str(budget_obj.currency),
+                str(settings.default_currency),
+            )
+            actual_in_default = currency_service.convert_amount(
+                actual_amount,
+                str(budget_obj.currency),
+                str(settings.default_currency),
+            )
+            total_planned += planned_in_default
+            total_actual += actual_in_default
+        except Exception:
+            # If conversion fails, use original amounts as fallback
+            total_planned += Decimal(str(budget_obj.planned_amount))
+            total_actual += actual_amount
 
-    # Create summary
+    # Create summary with default currency
     summary = schemas.BudgetSummary(
         budget_year=year,
         budget_month=month,
         total_planned=total_planned,
         total_actual=total_actual,
-        currency=budgets[0].currency if budgets else "USD",
+        currency=str(settings.default_currency),
         categories_count=len(budgets),
     )
 
