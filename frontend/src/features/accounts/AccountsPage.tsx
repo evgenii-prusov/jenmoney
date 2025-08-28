@@ -7,18 +7,14 @@ import {
   Alert,
   Skeleton,
   Paper,
-  IconButton,
-  Tooltip,
   Button,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import SettingsIcon from '@mui/icons-material/Settings';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { AccountCard } from '../../components/AccountCard';
 import { AccountForm } from '../../components/AccountForm';
 import { TransferForm } from '../../components/TransferForm';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { SettingsDialog } from '../../components/SettingsDialog';
 import { TotalBalance } from '../../components/TotalBalance';
 import {
   useAccountsWithToast,
@@ -27,8 +23,8 @@ import {
   useDeleteAccountWithToast,
 } from '../../hooks/useAccountsWithToast';
 import { useCreateTransferWithToast } from '../../hooks/useTransfersWithToast';
-import { useSettings, useUpdateSettings, useTotalBalance } from '../../hooks/useSettings';
-import type { Account, AccountCreate, AccountUpdate, Currency } from '../../types/account';
+import { useTotalBalance } from '../../hooks/useSettings';
+import type { Account, AccountCreate, AccountUpdate } from '../../types/account';
 import type { TransferCreate } from '../../types/transfer';
 
 export const AccountsPage: React.FC = () => {
@@ -37,7 +33,6 @@ export const AccountsPage: React.FC = () => {
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [transferFormOpen, setTransferFormOpen] = useState(false);
 
   const { data, isLoading, error } = useAccountsWithToast();
@@ -45,8 +40,6 @@ export const AccountsPage: React.FC = () => {
   const updateMutation = useUpdateAccountWithToast();
   const deleteMutation = useDeleteAccountWithToast();
   const createTransferMutation = useCreateTransferWithToast();
-  const { data: settings } = useSettings();
-  const updateSettings = useUpdateSettings();
   const { data: totalBalanceData, isLoading: totalBalanceLoading } = useTotalBalance();
 
   const handleCreateClick = () => {
@@ -93,10 +86,6 @@ export const AccountsPage: React.FC = () => {
     }
   };
 
-  const handleSettingsSave = async (currency: Currency) => {
-    await updateSettings.mutateAsync({ default_currency: currency });
-  };
-
   const handleTransferSubmit = async (transferData: TransferCreate) => {
     await createTransferMutation.mutateAsync(transferData);
   };
@@ -134,13 +123,6 @@ export const AccountsPage: React.FC = () => {
               Transfer
             </Button>
           )}
-          <Tooltip title="Settings">
-            <IconButton
-              onClick={() => setSettingsOpen(true)}
-            >
-              <SettingsIcon />
-            </IconButton>
-          </Tooltip>
         </Box>
       </Box>
 
@@ -230,14 +212,6 @@ export const AccountsPage: React.FC = () => {
           setAccountToDelete(null);
         }}
         isDestructive
-      />
-
-      {/* Settings Dialog */}
-      <SettingsDialog
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        settings={settings}
-        onSave={handleSettingsSave}
       />
 
       {/* Transfer Form Modal */}
