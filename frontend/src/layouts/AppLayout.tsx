@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import { Link, useLocation } from '@tanstack/react-router';
 
 interface AppLayoutProps {
@@ -22,7 +23,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const location = useLocation();
 
   // Determine current tab based on pathname
-  const currentTab = location.pathname === '/transfers' ? 1 : 0;
+  const getCurrentTab = () => {
+    if (location.pathname === '/transfers') return 1;
+    if (location.pathname === '/transactions') return 2;
+    return 0; // Default to accounts
+  };
+  
+  const currentTab = getCurrentTab();
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -93,6 +100,19 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               iconPosition="start"
               component={Link}
               to="/transfers"
+              sx={{
+                '& .MuiTab-iconWrapper': {
+                  marginRight: 1,
+                  marginBottom: 0,
+                },
+              }}
+            />
+            <Tab
+              label="Transactions"
+              icon={<ReceiptIcon />}
+              iconPosition="start"
+              component={Link}
+              to="/transactions"
               sx={{
                 '& .MuiTab-iconWrapper': {
                   marginRight: 1,
