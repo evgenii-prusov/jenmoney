@@ -90,6 +90,8 @@ class CRUDCategory:
         children = self.get_children(db, category_id)
         
         for child in children:
+            # Use assert to help mypy understand the type
+            assert child.id is not None
             descendant_ids.extend(self.get_all_descendant_ids(db, child.id))
         
         return descendant_ids

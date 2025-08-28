@@ -85,9 +85,10 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
         # Get all budgets for this period to know which categories we need to calculate
         budgets = self.get_by_period(db, year=year, month=month)
         
-        spending_dict = {}
+        spending_dict: dict[int, Decimal] = {}
         for budget in budgets:
             # Get all descendant category IDs (including the category itself)
+            assert budget.category_id is not None
             descendant_ids = category_crud.get_all_descendant_ids(db, budget.category_id)
             
             result = (
@@ -104,6 +105,7 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
             )
             
             # Store absolute value since expenses are negative
+            assert budget.category_id is not None
             spending_dict[budget.category_id] = abs(Decimal(str(result or 0)))
         
         return spending_dict
