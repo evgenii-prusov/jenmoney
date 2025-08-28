@@ -11,7 +11,9 @@ class TransactionBase(BaseAPIModel):
     """Base transaction model with core fields."""
 
     account_id: int
-    amount: Annotated[float, Field(description="Transaction amount (positive for income, negative for expense)")]
+    amount: Annotated[
+        float, Field(description="Transaction amount (positive for income, negative for expense)")
+    ]
     description: str | None = None
     transaction_date: date = Field(default_factory=lambda: date.today())
 
@@ -25,7 +27,13 @@ class TransactionCreate(TransactionBase):
 class TransactionUpdate(BaseAPIModel):
     """Model for updating a transaction."""
 
-    amount: Annotated[float, Field(description="Transaction amount (positive for income, negative for expense)")] | None = None
+    amount: (
+        Annotated[
+            float,
+            Field(description="Transaction amount (positive for income, negative for expense)"),
+        ]
+        | None
+    ) = None
     category_id: int | None = None
     description: str | None = None
     transaction_date: date | None = None
