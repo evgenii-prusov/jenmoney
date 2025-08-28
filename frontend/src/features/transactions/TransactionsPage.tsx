@@ -29,7 +29,6 @@ import {
   TrendingDown as ExpenseIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  SubdirectoryArrowRight as SubdirectoryArrowRightIcon,
 } from '@mui/icons-material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { transactionsApi, type TransactionListParams } from '../../api/transactions';
@@ -38,6 +37,8 @@ import { categoriesApi } from '../../api/categories';
 import { TransactionForm } from '../../components/TransactionForm';
 import { EditTransactionDialog } from '../../components/EditTransactionDialog';
 import { DeleteTransactionDialog } from '../../components/DeleteTransactionDialog';
+import { CategorySelector } from '../../components/CategorySelector';
+import { CategoryDisplay, createCategoryMap } from '../../components/CategoryDisplay';
 import type { Transaction } from '../../types/transaction';
 import type { Account } from '../../types/account';
 import type { Category } from '../../types/category';
@@ -98,56 +99,7 @@ export const TransactionsPage: React.FC = () => {
   }, {});
 
   // Create categories map from hierarchical data (include both parent and children)
-  const categoriesMap = categories.reduce((acc: Record<number, Category>, category) => {
-    acc[category.id] = category;
-    // Also add children to the map
-    category.children?.forEach((child) => {
-      acc[child.id] = child;
-    });
-    return acc;
-  }, {});
-
-  // Helper function to render categories with hierarchy in dropdown
-  const renderCategoryMenuItems = () => {
-    const items: React.ReactNode[] = [];
-    
-    categories.forEach((category) => {
-      // Add parent category
-      items.push(
-        <MenuItem key={category.id} value={category.id}>
-          {category.name}
-        </MenuItem>
-      );
-      
-      // Add child categories with indentation
-      category.children?.forEach((child) => {
-        items.push(
-          <MenuItem 
-            key={child.id} 
-            value={child.id}
-            sx={{ 
-              pl: 4,
-              fontSize: '0.875rem',
-              color: 'text.secondary',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-            }}
-          >
-            <SubdirectoryArrowRightIcon 
-              sx={{ 
-                fontSize: '1rem',
-                color: 'action.active',
-              }} 
-            />
-            {child.name}
-          </MenuItem>
-        );
-      });
-    });
-    
-    return items;
-  };
+  const categoriesMap = createCategoryMap(categories);
 
   const handlePageChange = (_: unknown, newPage: number) => {
     setPage(newPage);
@@ -268,17 +220,17 @@ export const TransactionsPage: React.FC = () => {
             </Select>
           </FormControl>
 
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel>Filter by Category</InputLabel>
-            <Select
-              value={categoryFilter || ''}
+          <Box sx={{ minWidth: 200 }}>
+            <CategorySelector
+              categories={categories}
+              value={categoryFilter}
+              onChange={(value) => handleCategoryFilterChange(value || '')}
               label="Filter by Category"
-              onChange={(e) => handleCategoryFilterChange(e.target.value as number | '')}
-            >
-              <MenuItem value="">All Categories</MenuItem>
-              {renderCategoryMenuItems()}
-            </Select>
-          </FormControl>
+              size="small"
+              includeAllOption
+              allOptionLabel="All Categories"
+            />
+          </Box>
 
           {(accountFilter || categoryFilter) && (
             <Button
@@ -338,9 +290,16 @@ export const TransactionsPage: React.FC = () => {
                       {getAmountChip(transaction.amount, transaction.currency)}
                     </TableCell>
                     <TableCell>
-                      {transaction.category_id && categoriesMap[transaction.category_id]
-                        ? categoriesMap[transaction.category_id].name
-                        : 'No Category'}
+                      {transaction.category_id && categoriesMap[transaction.category_id] ? (
+                        <CategoryDisplay 
+                          category={categoriesMap[transaction.category_id]} 
+                          variant="inline" 
+                        />
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          No Category
+                        </Typography>
+                      )}
                     </TableCell>
                     <TableCell>
                       {transaction.description || (
