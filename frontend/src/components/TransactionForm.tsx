@@ -13,8 +13,8 @@ import {
   FormControlLabel,
   Switch,
 } from '@mui/material';
-import { SubdirectoryArrowRight as SubdirectoryArrowRightIcon } from '@mui/icons-material';
 import { transactionsApi } from '../api/transactions';
+import { CategorySelector } from './CategorySelector';
 import type { Account } from '../types/account';
 import type { Category } from '../types/category';
 import type { TransactionCreate, TransactionFormData, TransactionValidationErrors } from '../types/transaction';
@@ -133,53 +133,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     }
   };
 
-  // Helper function to render categories with hierarchy in dropdown
-  const renderCategoryMenuItems = () => {
-    const items: React.ReactNode[] = [];
-    const categoryType = isExpense ? 'expense' : 'income';
-    
-    categories.forEach((category) => {
-      // Add parent category if it matches type
-      if (category.type === categoryType) {
-        items.push(
-          <MenuItem key={category.id} value={category.id}>
-            {category.name}
-          </MenuItem>
-        );
-      }
-      
-      // Add child categories with indentation if they match type
-      category.children?.forEach((child) => {
-        if (child.type === categoryType) {
-          items.push(
-            <MenuItem 
-              key={child.id} 
-              value={child.id}
-              sx={{ 
-                pl: 4,
-                fontSize: '0.875rem',
-                color: 'text.secondary',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-              }}
-            >
-              <SubdirectoryArrowRightIcon 
-                sx={{ 
-                  fontSize: '1rem',
-                  color: 'action.active',
-                }} 
-              />
-              {child.name}
-            </MenuItem>
-          );
-        }
-      });
-    });
-    
-    return items;
-  };
-
   return (
     <Dialog 
       open={open} 
@@ -246,18 +199,15 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               }}
             />
 
-            <TextField
-              select
+            <CategorySelector
+              categories={categories}
+              value={formData.category_id}
+              onChange={(value) => handleFieldChange('category_id', value)}
               label="Category"
-              value={formData.category_id || ''}
-              onChange={(e) => handleFieldChange('category_id', e.target.value ? parseInt(e.target.value) : null)}
               error={!!errors.category_id}
               helperText={errors.category_id || 'Optional'}
-              fullWidth
-            >
-              <MenuItem value="">No Category</MenuItem>
-              {renderCategoryMenuItems()}
-            </TextField>
+              filterByType={isExpense ? 'expense' : 'income'}
+            />
 
             <TextField
               label="Description"

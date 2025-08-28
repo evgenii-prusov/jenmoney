@@ -33,6 +33,7 @@ import { useBudgets, useDeleteBudget } from '../../hooks/useBudgets';
 import { categoriesApi } from '../../api/categories';
 import { BudgetForm } from '../../components/BudgetForm';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { CategoryDisplay, findCategoryById } from '../../components/CategoryDisplay';
 import type { Budget } from '../../types/budget';
 
 export const BudgetsPage: React.FC = () => {
@@ -45,11 +46,11 @@ export const BudgetsPage: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [budgetToDelete, setBudgetToDelete] = useState<Budget | null>(null);
 
-  // Queries
+  // Queries - Use hierarchical categories to match Transactions page
   const { data: budgetsData, isLoading: budgetsLoading, error: budgetsError } = useBudgets(selectedYear, selectedMonth);
   const { data: categoriesResponse } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => categoriesApi.getCategories(),
+    queryKey: ['categories', 'hierarchical'],
+    queryFn: () => categoriesApi.getCategories(true), // Use hierarchical categories
   });
 
   // Mutations
@@ -257,12 +258,14 @@ export const BudgetsPage: React.FC = () => {
                   return (
                     <TableRow key={budget.id} hover>
                       <TableCell>
-                        <Typography variant="body1" fontWeight="medium">
-                          {budget.category?.name || `Category ${budget.category_id}`}
-                        </Typography>
-                        {budget.category?.description && (
-                          <Typography variant="body2" color="text.secondary">
-                            {budget.category.description}
+                        {budget.category ? (
+                          <CategoryDisplay 
+                            category={budget.category} 
+                            showDescription 
+                          />
+                        ) : (
+                          <Typography variant="body1" fontWeight="medium">
+                            Category {budget.category_id}
                           </Typography>
                         )}
                       </TableCell>

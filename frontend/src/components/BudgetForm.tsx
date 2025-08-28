@@ -12,8 +12,11 @@ import {
   FormControl,
   InputLabel,
   Select,
+  Typography,
 } from '@mui/material';
 import { useCreateBudget, useUpdateBudget } from '../hooks/useBudgets';
+import { CategorySelector } from './CategorySelector';
+import { CategoryDisplay } from './CategoryDisplay';
 import type { Budget, BudgetCreate, BudgetUpdate } from '../types/budget';
 import type { Category } from '../types/category';
 
@@ -62,9 +65,6 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
   const submitError = createMutation.error?.message || updateMutation.error?.message;
-
-  // Filter categories to only show expense categories
-  const expenseCategories = categories.filter(cat => cat.type === 'expense');
 
   useEffect(() => {
     if (budget && mode === 'edit') {
@@ -193,24 +193,16 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({
                   </Select>
                 </FormControl>
 
-                <FormControl fullWidth error={!!errors.category_id}>
-                  <InputLabel>Category</InputLabel>
-                  <Select
-                    value={formData.category_id}
-                    label="Category"
-                    onChange={(e) => handleChange('category_id', e.target.value as number)}
-                  >
-                    <MenuItem value={0} disabled>
-                      Select a category
-                    </MenuItem>
-                    {expenseCategories.map((category) => (
-                      <MenuItem key={category.id} value={category.id}>
-                        {category.name}
-                        {category.description && ` - ${category.description}`}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <CategorySelector
+                  categories={categories}
+                  value={formData.category_id}
+                  onChange={(value) => handleChange('category_id', value || 0)}
+                  label="Category"
+                  error={!!errors.category_id}
+                  helperText={errors.category_id}
+                  required
+                  filterByType="expense"
+                />
               </>
             )}
 
@@ -223,12 +215,21 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({
                   disabled
                   sx={{ mb: 2 }}
                 />
-                <TextField
-                  label="Category"
-                  value={budget.category?.name || `Category ${budget.category_id}`}
-                  fullWidth
-                  disabled
-                />
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Category
+                  </Typography>
+                  {budget.category ? (
+                    <CategoryDisplay 
+                      category={budget.category} 
+                      showDescription 
+                    />
+                  ) : (
+                    <Typography variant="body1">
+                      Category {budget.category_id}
+                    </Typography>
+                  )}
+                </Box>
               </Box>
             )}
 
