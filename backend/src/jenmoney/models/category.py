@@ -9,6 +9,7 @@ from jenmoney.database import Base
 
 class CategoryType(enum.Enum):
     """Category type enumeration."""
+
     income = "income"
     expense = "expense"
 

@@ -67,7 +67,9 @@ class TransactionService:
             self.db.rollback()
             raise e
 
-    def update_transaction(self, *, transaction_id: int, transaction_in: TransactionUpdate) -> models.Transaction:
+    def update_transaction(
+        self, *, transaction_id: int, transaction_in: TransactionUpdate
+    ) -> models.Transaction:
         """Update a transaction with potential balance adjustments.
 
         Args:
