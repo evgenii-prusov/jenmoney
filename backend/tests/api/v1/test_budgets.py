@@ -303,3 +303,52 @@ class TestBudgetChildCategoryAggregation:
         
         # Should aggregate all child expenses (60 + 15 = 75)
         assert budget["actual_amount"] == "75.00"
+
+
+class TestBudgetCurrencyConversion:
+    """Test that budget summary displays amounts in user's default currency."""
+    
+    def test_budget_summary_uses_default_currency(self, client: TestClient) -> None:
+        """Test that budget summary totals are converted to user's default currency."""
+        # Set user's default currency to RUB
+        response = client.patch("/api/v1/settings/", json={"default_currency": "RUB"})
+        assert response.status_code == 200
+        
+        # Create a category
+        category_response = client.post("/api/v1/categories/", json={
+            "name": "Test Category",
+            "type": "expense",
+            "description": "Test category for budget"
+        })
+        assert category_response.status_code == 200
+        category_id = category_response.json()["id"]
+        
+        # Create a budget in EUR
+        budget_response = client.post("/api/v1/budgets/", json={
+            "budget_year": 2025,
+            "budget_month": 3,
+            "category_id": category_id,
+            "planned_amount": "100.00",
+            "currency": "EUR"
+        })
+        assert budget_response.status_code == 200
+        
+        # Get budgets for the month
+        budgets_response = client.get("/api/v1/budgets/?year=2025&month=3")
+        assert budgets_response.status_code == 200
+        
+        data = budgets_response.json()
+        summary = data["summary"]
+        
+        # Verify summary currency is RUB (user's default), not EUR (budget's currency)
+        assert summary["currency"] == "RUB"
+        
+        # Verify the amount has been converted (should be much larger than 100 when converted to RUB)
+        from decimal import Decimal
+        total_planned = Decimal(summary["total_planned"])
+        assert total_planned > Decimal("1000")  # EUR to RUB conversion should be ~90x
+        
+        # Verify individual budget item still shows original currency
+        budget_item = data["items"][0]
+        assert budget_item["currency"] == "EUR"
+        assert budget_item["planned_amount"] == "100.00"
