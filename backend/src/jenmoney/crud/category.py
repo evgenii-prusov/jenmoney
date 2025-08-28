@@ -20,13 +20,27 @@ class CRUDCategory:
             .first()
         )
 
-    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100, type_filter: CategoryType | None = None) -> list[Category]:
+    def get_multi(
+        self,
+        db: Session,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        type_filter: CategoryType | None = None,
+    ) -> list[Category]:
         query = db.query(Category).options(joinedload(Category.children))
         if type_filter:
             query = query.filter(Category.type == type_filter)
         return query.offset(skip).limit(limit).all()
 
-    def get_root_categories(self, db: Session, *, skip: int = 0, limit: int = 100, type_filter: CategoryType | None = None) -> list[Category]:
+    def get_root_categories(
+        self,
+        db: Session,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        type_filter: CategoryType | None = None,
+    ) -> list[Category]:
         """Get only root categories (categories with no parent) with their children."""
         query = (
             db.query(Category)

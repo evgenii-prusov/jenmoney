@@ -25,11 +25,15 @@ def create_category(
             raise HTTPException(status_code=400, detail="Parent category not found")
         # Prevent deep nesting - only allow 2 levels (parent -> child)
         if parent.parent_id is not None:
-            raise HTTPException(status_code=400, detail="Cannot create more than 2 levels of categories")
+            raise HTTPException(
+                status_code=400, detail="Cannot create more than 2 levels of categories"
+            )
         # Ensure child category has the same type as parent
         if parent.type.value != category_in.type:
-            raise HTTPException(status_code=400, detail="Child category must have the same type as parent")
-    
+            raise HTTPException(
+                status_code=400, detail="Child category must have the same type as parent"
+            )
+
     category = crud.category.create(db=db, obj_in=category_in)
     return category
 
@@ -39,7 +43,9 @@ def read_categories(
     db: Session = Depends(get_db),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    hierarchical: bool = Query(False, description="Return only root categories with their children"),
+    hierarchical: bool = Query(
+        False, description="Return only root categories with their children"
+    ),
     type: CategoryType | None = Query(None, description="Filter by category type"),
 ) -> Any:
     """Get list of categories with pagination. Use hierarchical=true for tree view."""
@@ -49,7 +55,7 @@ def read_categories(
     else:
         categories = crud.category.get_multi(db, skip=skip, limit=limit, type_filter=type)
         total = crud.category.count(db, type_filter=type)
-    
+
     return schemas.CategoryListResponse(
         items=categories,
         total=total,
@@ -65,7 +71,9 @@ def read_categories_hierarchy(
     type: CategoryType | None = Query(None, description="Filter by category type"),
 ) -> Any:
     """Get all categories in hierarchical structure (root categories with their children)."""
-    categories = crud.category.get_root_categories(db, skip=0, limit=1000, type_filter=type)  # Get all root categories
+    categories = crud.category.get_root_categories(
+        db, skip=0, limit=1000, type_filter=type
+    )  # Get all root categories
     return categories
 
 
@@ -91,29 +99,33 @@ def update_category(
     category = crud.category.get(db=db, id=category_id)
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
-    
+
     # Validate parent_id if being updated
     if category_in.parent_id is not None:
         if category_in.parent_id == category_id:
             raise HTTPException(status_code=400, detail="Category cannot be its own parent")
-        
+
         parent = crud.category.get(db=db, id=category_in.parent_id)
         if not parent:
             raise HTTPException(status_code=400, detail="Parent category not found")
-        
+
         # Prevent cycles - check if the parent is a child of this category
         if parent.parent_id == category_id:
             raise HTTPException(status_code=400, detail="Cannot set a child category as parent")
-        
+
         # Prevent deep nesting - only allow 2 levels
         if parent.parent_id is not None:
-            raise HTTPException(status_code=400, detail="Cannot create more than 2 levels of categories")
-        
+            raise HTTPException(
+                status_code=400, detail="Cannot create more than 2 levels of categories"
+            )
+
         # Ensure type compatibility when changing parent
         category_type = category_in.type if category_in.type is not None else category.type.value
         if parent.type.value != category_type:
-            raise HTTPException(status_code=400, detail="Child category must have the same type as parent")
-    
+            raise HTTPException(
+                status_code=400, detail="Child category must have the same type as parent"
+            )
+
     # If changing type, validate all children have compatible type
     if category_in.type is not None and category_in.type != category.type.value:
         # Check if category has children and their types
@@ -121,10 +133,10 @@ def update_category(
             for child in category.children:
                 if child.type.value != category_in.type:
                     raise HTTPException(
-                        status_code=400, 
-                        detail=f"Cannot change type: child category '{child.name}' has different type"
+                        status_code=400,
+                        detail=f"Cannot change type: child category '{child.name}' has different type",
                     )
-    
+
     category = crud.category.update(db=db, db_obj=category, obj_in=category_in)
     return category
 

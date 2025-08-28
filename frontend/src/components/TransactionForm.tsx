@@ -13,6 +13,7 @@ import {
   FormControlLabel,
   Switch,
 } from '@mui/material';
+import { SubdirectoryArrowRight as SubdirectoryArrowRightIcon } from '@mui/icons-material';
 import { transactionsApi } from '../api/transactions';
 import type { Account } from '../types/account';
 import type { Category } from '../types/category';
@@ -132,10 +133,52 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     }
   };
 
-  // Filter categories by type (income/expense)
-  const filteredCategories = categories.filter(cat => 
-    isExpense ? cat.type === 'expense' : cat.type === 'income'
-  );
+  // Helper function to render categories with hierarchy in dropdown
+  const renderCategoryMenuItems = () => {
+    const items: React.ReactNode[] = [];
+    const categoryType = isExpense ? 'expense' : 'income';
+    
+    categories.forEach((category) => {
+      // Add parent category if it matches type
+      if (category.type === categoryType) {
+        items.push(
+          <MenuItem key={category.id} value={category.id}>
+            {category.name}
+          </MenuItem>
+        );
+      }
+      
+      // Add child categories with indentation if they match type
+      category.children?.forEach((child) => {
+        if (child.type === categoryType) {
+          items.push(
+            <MenuItem 
+              key={child.id} 
+              value={child.id}
+              sx={{ 
+                pl: 4,
+                fontSize: '0.875rem',
+                color: 'text.secondary',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+              }}
+            >
+              <SubdirectoryArrowRightIcon 
+                sx={{ 
+                  fontSize: '1rem',
+                  color: 'action.active',
+                }} 
+              />
+              {child.name}
+            </MenuItem>
+          );
+        }
+      });
+    });
+    
+    return items;
+  };
 
   return (
     <Dialog 
@@ -213,11 +256,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               fullWidth
             >
               <MenuItem value="">No Category</MenuItem>
-              {filteredCategories.map((category) => (
-                <MenuItem key={category.id} value={category.id}>
-                  {category.name}
-                </MenuItem>
-              ))}
+              {renderCategoryMenuItems()}
             </TextField>
 
             <TextField

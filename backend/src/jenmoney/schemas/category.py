@@ -8,9 +8,10 @@ from jenmoney.schemas.base import BaseAPIModel
 
 if TYPE_CHECKING:
     from typing import ForwardRef
-    CategoryResponseRef = ForwardRef('CategoryResponse')
+
+    CategoryResponseRef = ForwardRef("CategoryResponse")
 else:
-    CategoryResponseRef = 'CategoryResponse'
+    CategoryResponseRef = "CategoryResponse"
 
 
 class CategoryBase(BaseAPIModel):

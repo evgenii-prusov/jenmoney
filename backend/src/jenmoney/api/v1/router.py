@@ -1,6 +1,13 @@
 from fastapi import APIRouter
 
-from jenmoney.api.v1.endpoints import accounts, categories, currency_rates, settings, transactions, transfers
+from jenmoney.api.v1.endpoints import (
+    accounts,
+    categories,
+    currency_rates,
+    settings,
+    transactions,
+    transfers,
+)
 
 api_router = APIRouter()
 api_router.include_router(accounts.router, prefix="/accounts", tags=["accounts"])
