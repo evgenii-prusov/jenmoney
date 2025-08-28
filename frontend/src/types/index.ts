@@ -1,4 +1,5 @@
 export * from './account';
+export * from './budget';
 export * from './category';
 
 // Re-export settings types from account.ts

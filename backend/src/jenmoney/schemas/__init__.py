@@ -5,6 +5,13 @@ from jenmoney.schemas.account import (
     AccountUpdate,
     TotalBalanceResponse,
 )
+from jenmoney.schemas.budget import (
+    BudgetCreate,
+    BudgetListResponse,
+    BudgetResponse,
+    BudgetSummary,
+    BudgetUpdate,
+)
 from jenmoney.schemas.category import (
     CategoryCreate,
     CategoryListResponse,
@@ -35,6 +42,11 @@ __all__ = [
     "AccountResponse",
     "AccountListResponse",
     "TotalBalanceResponse",
+    "BudgetCreate",
+    "BudgetUpdate",
+    "BudgetResponse",
+    "BudgetListResponse",
+    "BudgetSummary",
     "CategoryCreate",
     "CategoryUpdate",
     "CategoryResponse",
