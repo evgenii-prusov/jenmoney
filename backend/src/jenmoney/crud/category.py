@@ -84,5 +84,17 @@ class CRUDCategory:
         """Get all children of a specific category."""
         return db.query(Category).filter(Category.parent_id == parent_id).all()
 
+    def get_all_descendant_ids(self, db: Session, category_id: int) -> list[int]:
+        """Get all descendant category IDs including the category itself."""
+        descendant_ids = [category_id]
+        children = self.get_children(db, category_id)
+        
+        for child in children:
+            # Use assert to help mypy understand the type
+            assert child.id is not None
+            descendant_ids.extend(self.get_all_descendant_ids(db, child.id))
+        
+        return descendant_ids
+
 
 category = CRUDCategory()

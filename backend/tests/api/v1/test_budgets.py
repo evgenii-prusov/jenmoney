@@ -126,3 +126,180 @@ class TestBudgetList:
         assert data["summary"]["total_planned"] == "0.00"
         assert data["summary"]["total_actual"] == "0.00"
         assert data["summary"]["categories_count"] == 0
+
+
+class TestBudgetChildCategoryAggregation:
+    def test_budget_aggregates_child_category_expenses(self, client: TestClient) -> None:
+        """Test that budget for parent category includes expenses from child categories."""
+        # Create parent category
+        parent_category_data = {
+            "name": "Питание",  # Food
+            "description": "Food expenses",
+            "type": "expense"
+        }
+        parent_response = client.post("/api/v1/categories/", json=parent_category_data)
+        assert parent_response.status_code == 200
+        parent_category = parent_response.json()
+        
+        # Create child categories
+        child1_data = {
+            "name": "Рестораны",  # Restaurants
+            "description": "Restaurant expenses",
+            "type": "expense",
+            "parent_id": parent_category["id"]
+        }
+        child1_response = client.post("/api/v1/categories/", json=child1_data)
+        assert child1_response.status_code == 200
+        child1_category = child1_response.json()
+        
+        child2_data = {
+            "name": "Продукты",  # Groceries
+            "description": "Grocery expenses",
+            "type": "expense",
+            "parent_id": parent_category["id"]
+        }
+        child2_response = client.post("/api/v1/categories/", json=child2_data)
+        assert child2_response.status_code == 200
+        child2_category = child2_response.json()
+        
+        # Create an account for transactions
+        account_data = {
+            "name": "Test Account",
+            "balance": "1000.00",
+            "currency": "USD"
+        }
+        account_response = client.post("/api/v1/accounts/", json=account_data)
+        assert account_response.status_code == 200
+        account = account_response.json()
+        
+        # Create transactions in child categories
+        transaction1_data = {
+            "account_id": account["id"],
+            "amount": "-50.00",  # Restaurant expense
+            "currency": "USD",
+            "category_id": child1_category["id"],
+            "description": "Restaurant dinner",
+            "transaction_date": "2025-01-15"
+        }
+        transaction1_response = client.post("/api/v1/transactions/", json=transaction1_data)
+        assert transaction1_response.status_code == 200
+        
+        transaction2_data = {
+            "account_id": account["id"],
+            "amount": "-30.00",  # Grocery expense
+            "currency": "USD",
+            "category_id": child2_category["id"],
+            "description": "Weekly groceries",
+            "transaction_date": "2025-01-20"
+        }
+        transaction2_response = client.post("/api/v1/transactions/", json=transaction2_data)
+        assert transaction2_response.status_code == 200
+        
+        # Create transaction directly in parent category
+        transaction3_data = {
+            "account_id": account["id"],
+            "amount": "-20.00",  # Direct parent expense
+            "currency": "USD",
+            "category_id": parent_category["id"],
+            "description": "Food delivery",
+            "transaction_date": "2025-01-25"
+        }
+        transaction3_response = client.post("/api/v1/transactions/", json=transaction3_data)
+        assert transaction3_response.status_code == 200
+        
+        # Create budget for parent category
+        budget_data = {
+            "budget_year": 2025,
+            "budget_month": 1,
+            "category_id": parent_category["id"],
+            "planned_amount": "200.00",
+            "currency": "USD"
+        }
+        budget_response = client.post("/api/v1/budgets/", json=budget_data)
+        assert budget_response.status_code == 200
+        budget = budget_response.json()
+        
+        # Verify that actual_amount includes all expenses (50 + 30 + 20 = 100)
+        assert budget["actual_amount"] == "100.00"
+        assert budget["planned_amount"] == "200.00"
+        
+        # Also test via budget list endpoint
+        list_response = client.get("/api/v1/budgets/?year=2025&month=1")
+        assert list_response.status_code == 200
+        list_data = list_response.json()
+        
+        assert len(list_data["items"]) == 1
+        budget_item = list_data["items"][0]
+        assert budget_item["actual_amount"] == "100.00"
+        assert list_data["summary"]["total_actual"] == "100.00"
+        
+    def test_budget_child_categories_two_levels(self, client: TestClient) -> None:
+        """Test budget aggregation with 2 levels of nested categories (API limit)."""
+        # Create parent category
+        parent_data = {"name": "Transport", "type": "expense"}
+        parent_response = client.post("/api/v1/categories/", json=parent_data)
+        assert parent_response.status_code == 200
+        parent_category = parent_response.json()
+        
+        # Create child categories (API allows max 2 levels)
+        child1_data = {
+            "name": "Car",
+            "type": "expense",
+            "parent_id": parent_category["id"]
+        }
+        child1_response = client.post("/api/v1/categories/", json=child1_data)
+        assert child1_response.status_code == 200
+        child1_category = child1_response.json()
+        
+        child2_data = {
+            "name": "Public Transport",
+            "type": "expense",
+            "parent_id": parent_category["id"]
+        }
+        child2_response = client.post("/api/v1/categories/", json=child2_data)
+        assert child2_response.status_code == 200
+        child2_category = child2_response.json()
+        
+        # Create account
+        account_data = {"name": "Test Account", "balance": "500.00", "currency": "USD"}
+        account_response = client.post("/api/v1/accounts/", json=account_data)
+        assert account_response.status_code == 200
+        account = account_response.json()
+        
+        # Create transactions in child categories
+        trans_child1_data = {
+            "account_id": account["id"],
+            "amount": "-60.00",
+            "currency": "USD",
+            "category_id": child1_category["id"],
+            "description": "Car fuel",
+            "transaction_date": "2025-02-10"
+        }
+        trans_child1_response = client.post("/api/v1/transactions/", json=trans_child1_data)
+        assert trans_child1_response.status_code == 200
+        
+        trans_child2_data = {
+            "account_id": account["id"],
+            "amount": "-15.00",
+            "currency": "USD",
+            "category_id": child2_category["id"],
+            "description": "Bus ticket",
+            "transaction_date": "2025-02-15"
+        }
+        trans_child2_response = client.post("/api/v1/transactions/", json=trans_child2_data)
+        assert trans_child2_response.status_code == 200
+        
+        # Create budget for parent category
+        budget_data = {
+            "budget_year": 2025,
+            "budget_month": 2,
+            "category_id": parent_category["id"],
+            "planned_amount": "150.00",
+            "currency": "USD"
+        }
+        budget_response = client.post("/api/v1/budgets/", json=budget_data)
+        assert budget_response.status_code == 200
+        budget = budget_response.json()
+        
+        # Should aggregate all child expenses (60 + 15 = 75)
+        assert budget["actual_amount"] == "75.00"
