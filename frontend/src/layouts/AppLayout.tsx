@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   AppBar,
@@ -8,11 +8,17 @@ import {
   useTheme,
   Tabs,
   Tab,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import ReceiptIcon from '@mui/icons-material/Receipt';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { Link, useLocation } from '@tanstack/react-router';
+import { SettingsDialog } from '../components/SettingsDialog';
+import { useSettings, useUpdateSettings } from '../hooks/useSettings';
+import type { Currency } from '../types/account';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -21,6 +27,11 @@ interface AppLayoutProps {
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const theme = useTheme();
   const location = useLocation();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Settings hooks
+  const { data: settings } = useSettings();
+  const updateSettings = useUpdateSettings();
 
   // Determine current tab based on pathname
   const getCurrentTab = () => {
@@ -30,6 +41,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   };
   
   const currentTab = getCurrentTab();
+
+  // Settings handler
+  const handleSettingsSave = async (currency: Currency) => {
+    await updateSettings.mutateAsync({ default_currency: currency });
+  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -121,6 +137,21 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               }}
             />
           </Tabs>
+          
+          {/* Global Settings Button */}
+          <Tooltip title="Settings">
+            <IconButton
+              onClick={() => setSettingsOpen(true)}
+              sx={{ 
+                color: 'text.secondary',
+                '&:hover': {
+                  color: 'primary.main',
+                },
+              }}
+            >
+              <SettingsIcon />
+            </IconButton>
+          </Tooltip>
         </Toolbar>
       </AppBar>
 
@@ -134,6 +165,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       >
         <Container maxWidth="lg">{children}</Container>
       </Box>
+
+      {/* Global Settings Dialog */}
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={settings}
+        onSave={handleSettingsSave}
+      />
     </Box>
   );
 };

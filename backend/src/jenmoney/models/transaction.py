@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from decimal import Decimal
 
 from sqlalchemy import Column, DateTime, Numeric, String, Text, Integer, ForeignKey, Date
 from sqlalchemy.orm import relationship
