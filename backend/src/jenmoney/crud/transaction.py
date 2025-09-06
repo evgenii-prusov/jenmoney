@@ -6,6 +6,16 @@ from jenmoney.schemas.transaction import TransactionCreate, TransactionUpdate
 
 
 class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, TransactionUpdate]):
+    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> list[Transaction]:
+        """Get transactions with proper date ordering (newest first)."""
+        return (
+            db.query(self.model)
+            .order_by(self.model.transaction_date.desc(), self.model.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
     def get_by_account_id(
         self, db: Session, *, account_id: int, skip: int = 0, limit: int = 100
     ) -> list[Transaction]:
