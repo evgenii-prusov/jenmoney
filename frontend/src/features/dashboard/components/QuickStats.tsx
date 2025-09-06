@@ -12,7 +12,6 @@ import {
 import {
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
-  AccountBalance as AccountIcon,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { useAccounts } from '../../../hooks/useAccounts';
@@ -43,6 +42,13 @@ export const QuickStats: React.FC = () => {
     queryKey: ['categories', 'hierarchical'],
     queryFn: () => categoriesApi.getCategories(true),
     refetchInterval: 60000, // Refresh every minute
+  });
+
+  // Get user settings for default currency
+  const { data: settingsData } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => import('../../../api/settings').then(m => m.settingsApi.getSettings()),
+    refetchInterval: 60000,
   });
 
   // Get current month budgets
@@ -81,7 +87,7 @@ export const QuickStats: React.FC = () => {
   const transactions = transactionsData?.items || [];
   const categories = categoriesData?.items || [];
   const budgets = budgetsData?.items || [];
-  const totalAccounts = accounts.length;
+  const defaultCurrency = settingsData?.default_currency || Currency.USD;
   
   // Group accounts by currency
   const accountsByCurrency = accounts.reduce((acc, account) => {
@@ -99,7 +105,8 @@ export const QuickStats: React.FC = () => {
     account.balance > max.balance ? account : max
   );
 
-  // Calculate transaction analytics
+  // Calculate transaction analytics - simplified without currency conversion for now
+  // Note: In a real implementation, we'd need proper currency conversion rates
   const totalTransactions = transactions.length;
   
   // Get the most recent 30 days for trend analysis
@@ -110,8 +117,13 @@ export const QuickStats: React.FC = () => {
     new Date(t.transaction_date) >= thirtyDaysAgo
   );
   
+  // For simplicity, we'll calculate totals without currency conversion
+  // This is a limitation that should be addressed with proper currency conversion API
   const recentIncome = recentTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
   const recentExpenses = Math.abs(recentTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+
+  // Use default currency symbol for display
+  const defaultCurrencySymbol = currencySymbols[defaultCurrency];
 
   // Category breakdown for recent expenses
   const categoryMap = categories.reduce((acc, cat) => {
@@ -162,22 +174,6 @@ export const QuickStats: React.FC = () => {
       <Typography variant="h6" color="text.secondary" gutterBottom>
         Quick Stats
       </Typography>
-      
-      {/* Account Stats */}
-      <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <AccountIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-          <Typography variant="body2" color="text.secondary">
-            Total Accounts
-          </Typography>
-        </Box>
-        <Typography variant="h5" sx={{ fontWeight: 600 }}>
-          {totalAccounts}
-        </Typography>
-      </Box>
-
-      <Divider sx={{ my: 2 }} />
-
       {/* Transaction Stats */}
       {totalTransactions > 0 ? (
         <>
@@ -208,7 +204,7 @@ export const QuickStats: React.FC = () => {
           {(recentIncome > 0 || recentExpenses > 0) && (
             <Box sx={{ mb: 2 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Income vs Expenses
+                Income vs Expenses (Mixed Currencies)
               </Typography>
               <Box sx={{ mb: 1 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
@@ -216,7 +212,7 @@ export const QuickStats: React.FC = () => {
                     Income
                   </Typography>
                   <Typography variant="body2" color="success.main" sx={{ fontWeight: 500 }}>
-                    ${recentIncome.toLocaleString()}
+                    {defaultCurrencySymbol}{recentIncome.toLocaleString()}
                   </Typography>
                 </Box>
                 <LinearProgress 
@@ -238,7 +234,7 @@ export const QuickStats: React.FC = () => {
                     Expenses
                   </Typography>
                   <Typography variant="body2" color="error.main" sx={{ fontWeight: 500 }}>
-                    ${recentExpenses.toLocaleString()}
+                    {defaultCurrencySymbol}{recentExpenses.toLocaleString()}
                   </Typography>
                 </Box>
                 <LinearProgress 
@@ -254,25 +250,51 @@ export const QuickStats: React.FC = () => {
                   }} 
                 />
               </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                * Amounts shown without currency conversion
+              </Typography>
             </Box>
           )}
 
-          {/* Top expense categories */}
+          {/* Top expense categories - Enhanced visibility */}
           {topCategories.length > 0 && (
             <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Top Expense Categories
+              <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
+                🏷️ Top 3 Expense Categories
               </Typography>
-              {topCategories.map(([category, amount]) => (
-                <Box key={category} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography variant="body2" noWrap sx={{ maxWidth: '60%' }}>
-                    {category}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    ${amount.toLocaleString()}
-                  </Typography>
-                </Box>
-              ))}
+              <Box sx={{ 
+                backgroundColor: 'background.default', 
+                borderRadius: 1, 
+                p: 1.5,
+                border: '1px solid',
+                borderColor: 'divider'
+              }}>
+                {topCategories.map(([category, amount], index) => (
+                  <Box key={category} sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    mb: index < topCategories.length - 1 ? 1 : 0,
+                    p: 0.5,
+                    borderRadius: 0.5,
+                    '&:hover': {
+                      backgroundColor: 'action.hover'
+                    }
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" color="primary" sx={{ fontWeight: 500, minWidth: '20px' }}>
+                        #{index + 1}
+                      </Typography>
+                      <Typography variant="body2" noWrap sx={{ maxWidth: '120px' }}>
+                        {category}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>
+                      {defaultCurrencySymbol}{amount.toLocaleString()}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
             </Box>
           )}
 

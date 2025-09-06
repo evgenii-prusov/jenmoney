@@ -67,14 +67,14 @@ const formatDate = (dateString: string): string => {
 };
 
 export const RecentTransactions: React.FC = () => {
-  // Fetch recent transactions (last 5)
+  // Fetch recent transactions (last 3)
   const {
     data: transactionsResponse,
     isLoading: transactionsLoading,
     error: transactionsError,
   } = useQuery({
-    queryKey: ['transactions', { skip: 0, limit: 5 }],
-    queryFn: () => transactionsApi.getTransactions({ skip: 0, limit: 5 }),
+    queryKey: ['transactions', { skip: 0, limit: 3 }],
+    queryFn: () => transactionsApi.getTransactions({ skip: 0, limit: 3 }),
     refetchInterval: 5000,
   });
 
