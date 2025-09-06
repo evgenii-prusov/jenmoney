@@ -274,6 +274,42 @@ class TestCategoryUpdate:
         assert response.status_code == 400
         assert "Cannot set a child category as parent" in response.json()["detail"]
 
+    def test_update_category_clear_description(self, client: TestClient) -> None:
+        """Test that setting description to null clears an existing description."""
+        # Create a category with a description
+        category_data = {"name": "Test Category", "description": "Initial description", "type": "expense"}
+        create_response = client.post("/api/v1/categories/", json=category_data)
+        created_category = create_response.json()
+        assert created_category["description"] == "Initial description"
+        
+        # Clear the description by setting it to null
+        update_data = {"description": None}
+        response = client.patch(f"/api/v1/categories/{created_category['id']}", json=update_data)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["description"] is None
+        
+        # Verify the description is actually cleared in the database
+        get_response = client.get(f"/api/v1/categories/{created_category['id']}")
+        assert get_response.status_code == 200
+        get_data = get_response.json()
+        assert get_data["description"] is None
+
+    def test_update_category_preserve_description_when_not_provided(self, client: TestClient) -> None:
+        """Test that existing description is preserved when not included in update."""
+        # Create a category with a description
+        category_data = {"name": "Test Category", "description": "Original description", "type": "expense"}
+        create_response = client.post("/api/v1/categories/", json=category_data)
+        created_category = create_response.json()
+        
+        # Update only the name, not providing description field
+        update_data = {"name": "Updated Category Name"}
+        response = client.patch(f"/api/v1/categories/{created_category['id']}", json=update_data)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "Updated Category Name"
+        assert data["description"] == "Original description"  # Should be preserved
+
     def test_update_category_not_found(self, client: TestClient) -> None:
         update_data = {"name": "Non-existent", "type": "expense"}
         response = client.patch("/api/v1/categories/99999", json=update_data)
