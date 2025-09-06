@@ -74,18 +74,19 @@ export const BudgetsPage: React.FC = () => {
   const expenseGroups = createBudgetGroupSummaries(expenseBudgets, categories);
 
   // Calculate summaries for each type
+  const primaryCurrency = budgets.length > 0 ? budgets[0].currency : (summary?.currency || 'USD');
   const incomeSummary = {
     total_planned: incomeBudgets.reduce((sum, budget) => sum + parseFloat(budget.planned_amount), 0),
     total_actual: incomeBudgets.reduce((sum, budget) => sum + parseFloat(budget.actual_amount), 0),
     categories_count: incomeBudgets.length,
-    currency: summary?.currency || 'USD'
+    currency: primaryCurrency
   };
 
   const expenseSummary = {
     total_planned: expenseBudgets.reduce((sum, budget) => sum + parseFloat(budget.planned_amount), 0),
     total_actual: expenseBudgets.reduce((sum, budget) => sum + parseFloat(budget.actual_amount), 0),
     categories_count: expenseBudgets.length,
-    currency: summary?.currency || 'USD'
+    currency: primaryCurrency
   };
 
   // Month names for display
@@ -473,46 +474,79 @@ export const BudgetsPage: React.FC = () => {
         </Stack>
       </Paper>
 
-      {/* Summary Cards */}
+      {/* Enhanced Summary Cards */}
       {summary && (
         <Paper sx={{ p: 3, mb: 3 }}>
-          <Stack direction="row" spacing={4} alignItems="center">
+          {/* Planned Row */}
+          <Typography variant="h6" color="primary" gutterBottom>
+            Planned Budget
+          </Typography>
+          <Stack direction="row" spacing={4} alignItems="center" sx={{ mb: 3 }}>
             <Box>
-              <Typography variant="h6" color="primary">
-                Total Planned
+              <Typography variant="body1" color="success.main" fontWeight="medium">
+                Planned Income
               </Typography>
-              <Typography variant="h4">
-                {formatCurrency(summary.total_planned, summary.currency)}
+              <Typography variant="h5" color="success.main">
+                {formatCurrency(incomeSummary.total_planned.toString(), incomeSummary.currency)}
               </Typography>
             </Box>
             <Box>
-              <Typography variant="h6" color="text.secondary">
-                Total Actual
+              <Typography variant="body1" color="info.main" fontWeight="medium">
+                Planned Expenses
               </Typography>
-              <Typography variant="h4">
-                {formatCurrency(summary.total_actual, summary.currency)}
+              <Typography variant="h5" color="info.main">
+                {formatCurrency(expenseSummary.total_planned.toString(), expenseSummary.currency)}
               </Typography>
             </Box>
             <Box>
-              <Typography variant="h6" color="text.secondary">
-                Remaining
+              <Typography variant="body1" color="text.secondary" fontWeight="medium">
+                Planned Remaining
               </Typography>
               <Typography 
-                variant="h4" 
-                color={getRemainingAmount(summary.total_planned, summary.total_actual) >= 0 ? 'success.main' : 'error.main'}
+                variant="h5" 
+                color={(incomeSummary.total_planned - expenseSummary.total_planned) >= 0 ? 'success.main' : 'error.main'}
               >
                 {formatCurrency(
-                  getRemainingAmount(summary.total_planned, summary.total_actual).toString(),
-                  summary.currency
+                  (incomeSummary.total_planned - expenseSummary.total_planned).toString(),
+                  primaryCurrency
                 )}
               </Typography>
             </Box>
+          </Stack>
+
+          {/* Actual Row */}
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            Actual Results
+          </Typography>
+          <Stack direction="row" spacing={4} alignItems="center">
             <Box>
-              <Typography variant="h6" color="text.secondary">
-                Categories
+              <Typography variant="body1" color="success.dark" fontWeight="medium">
+                Actual Earnings
               </Typography>
-              <Typography variant="h4">
-                {summary.categories_count}
+              <Typography variant="h5" color="success.dark">
+                {formatCurrency(incomeSummary.total_actual.toString(), incomeSummary.currency)}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body1" color="info.dark" fontWeight="medium">
+                Actual Expenses
+              </Typography>
+              <Typography variant="h5" color="info.dark">
+                {formatCurrency(expenseSummary.total_actual.toString(), expenseSummary.currency)}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body1" color="text.secondary" fontWeight="medium">
+                Actual Difference
+              </Typography>
+              <Typography 
+                variant="h5" 
+                color={(incomeSummary.total_actual - expenseSummary.total_actual) >= 0 ? 'success.main' : 'error.main'}
+              >
+                {formatCurrency(
+                  (incomeSummary.total_actual - expenseSummary.total_actual).toString(),
+                  primaryCurrency
+                )}
               </Typography>
             </Box>
           </Stack>

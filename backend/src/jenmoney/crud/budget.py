@@ -49,11 +49,9 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
             .first()
         )
 
-    def get_actual_amount(
-        self, db: Session, *, category_id: int, year: int, month: int
-    ) -> Decimal:
+    def get_actual_amount(self, db: Session, *, category_id: int, year: int, month: int) -> Decimal:
         """Calculate actual amount for a category and all its children in a specific month.
-        
+
         For expense categories, sums negative transaction amounts (expenses).
         For income categories, sums positive transaction amounts (income).
         """
