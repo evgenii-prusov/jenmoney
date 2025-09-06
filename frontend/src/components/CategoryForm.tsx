@@ -96,7 +96,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({
     try {
       const submitData = {
         name: formData.name.trim(),
-        description: formData.description.trim() || undefined,
+        description: formData.description.trim() || null,
         type: formData.type,
         parent_id: formData.parent_id || undefined,
       };
