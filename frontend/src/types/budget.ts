@@ -33,6 +33,10 @@ export interface BudgetSummary {
   total_actual: string;
   currency: string;
   categories_count: number;
+  income_planned: string;
+  income_actual: string;
+  expense_planned: string;
+  expense_actual: string;
 }
 
 export interface BudgetListResponse {

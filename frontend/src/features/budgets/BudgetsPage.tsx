@@ -73,20 +73,19 @@ export const BudgetsPage: React.FC = () => {
   const incomeGroups = createBudgetGroupSummaries(incomeBudgets, categories);
   const expenseGroups = createBudgetGroupSummaries(expenseBudgets, categories);
 
-  // Calculate summaries for each type
-  const primaryCurrency = budgets.length > 0 ? budgets[0].currency : (summary?.currency || 'USD');
+  // Use backend summaries with proper currency conversion
   const incomeSummary = {
-    total_planned: incomeBudgets.reduce((sum, budget) => sum + parseFloat(budget.planned_amount), 0),
-    total_actual: incomeBudgets.reduce((sum, budget) => sum + parseFloat(budget.actual_amount), 0),
+    total_planned: summary ? parseFloat(summary.income_planned) : 0,
+    total_actual: summary ? parseFloat(summary.income_actual) : 0,
     categories_count: incomeBudgets.length,
-    currency: primaryCurrency
+    currency: summary?.currency || 'USD'
   };
 
   const expenseSummary = {
-    total_planned: expenseBudgets.reduce((sum, budget) => sum + parseFloat(budget.planned_amount), 0),
-    total_actual: expenseBudgets.reduce((sum, budget) => sum + parseFloat(budget.actual_amount), 0),
+    total_planned: summary ? parseFloat(summary.expense_planned) : 0,
+    total_actual: summary ? parseFloat(summary.expense_actual) : 0,
     categories_count: expenseBudgets.length,
-    currency: primaryCurrency
+    currency: summary?.currency || 'USD'
   };
 
   // Month names for display
@@ -508,7 +507,7 @@ export const BudgetsPage: React.FC = () => {
               >
                 {formatCurrency(
                   (incomeSummary.total_planned - expenseSummary.total_planned).toString(),
-                  primaryCurrency
+                  incomeSummary.currency
                 )}
               </Typography>
             </Box>
@@ -545,7 +544,7 @@ export const BudgetsPage: React.FC = () => {
               >
                 {formatCurrency(
                   (incomeSummary.total_actual - expenseSummary.total_actual).toString(),
-                  primaryCurrency
+                  incomeSummary.currency
                 )}
               </Typography>
             </Box>
