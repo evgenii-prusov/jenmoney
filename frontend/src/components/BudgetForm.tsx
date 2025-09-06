@@ -206,7 +206,6 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({
                   error={!!errors.category_id}
                   helperText={errors.category_id}
                   required
-                  filterByType="expense"
                 />
               </>
             )}

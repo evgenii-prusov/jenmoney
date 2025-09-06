@@ -16,7 +16,7 @@ class Budget(Base):  # type: ignore[misc, valid-type]
     budget_year = Column(Integer, nullable=False, index=True)
     budget_month = Column(Integer, nullable=False, index=True)
 
-    # Category this budget applies to (only expense categories)
+    # Category this budget applies to (expense or income categories)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False, index=True)
 
     # Planned amount for this category in this month
