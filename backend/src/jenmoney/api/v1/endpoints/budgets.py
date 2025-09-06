@@ -21,6 +21,11 @@ def create_budget(
 ) -> Any:
     """Create a new budget entry."""
     try:
+        # If no currency provided, use user's default currency
+        if budget_in.currency is None:
+            settings = user_settings.get_or_create(db)
+            budget_in.currency = str(settings.default_currency)
+
         budget_obj = crud.budget.create_with_validation(db, obj_in=budget_in)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

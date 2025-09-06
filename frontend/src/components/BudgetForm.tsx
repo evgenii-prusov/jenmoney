@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useCreateBudget, useUpdateBudget } from '../hooks/useBudgets';
+import { useSettings } from '../hooks/useSettings';
 import { CategorySelector } from './CategorySelector';
 import { CategoryDisplay } from './CategoryDisplay';
 import type { Budget, BudgetCreate, BudgetUpdate } from '../types/budget';
@@ -56,12 +57,13 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({
     budget_month: defaultMonth,
     category_id: 0,
     planned_amount: '',
-    currency: 'USD',
+    currency: 'USD', // Will be updated with user's default currency
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const createMutation = useCreateBudget();
   const updateMutation = useUpdateBudget();
+  const { data: settings } = useSettings();
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
   const submitError = createMutation.error?.message || updateMutation.error?.message;
@@ -76,16 +78,18 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({
         currency: budget.currency,
       });
     } else {
+      // For create mode, use user's default currency
+      const defaultCurrency = settings?.default_currency || 'USD';
       setFormData({
         budget_year: defaultYear,
         budget_month: defaultMonth,
         category_id: 0,
         planned_amount: '',
-        currency: 'USD',
+        currency: defaultCurrency,
       });
     }
     setErrors({});
-  }, [budget, mode, defaultYear, defaultMonth, open]);
+  }, [budget, mode, defaultYear, defaultMonth, open, settings]);
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -128,7 +132,8 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({
           budget_month: formData.budget_month,
           category_id: formData.category_id,
           planned_amount: formData.planned_amount,
-          currency: formData.currency,
+          // Only include currency if user explicitly changed it from default
+          ...(formData.currency !== (settings?.default_currency || 'USD') ? { currency: formData.currency } : {}),
         };
         await createMutation.mutateAsync(budgetCreate);
       } else if (budget) {

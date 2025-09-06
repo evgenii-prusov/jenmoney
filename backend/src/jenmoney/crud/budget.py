@@ -1,6 +1,6 @@
 from decimal import Decimal
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, func, extract
+from sqlalchemy import and_, extract
 
 from jenmoney.crud.base import CRUDBase
 from jenmoney.models.budget import Budget
@@ -57,10 +57,12 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
         from jenmoney.crud.category import category as category_crud
 
         # Get the budget to know its currency
-        budget = self.get_by_category_and_period(db, category_id=category_id, year=year, month=month)
+        budget = self.get_by_category_and_period(
+            db, category_id=category_id, year=year, month=month
+        )
         if not budget:
             return Decimal("0.00")
-        
+
         budget_currency = str(budget.currency)
         currency_service = CurrencyService(db)
 
@@ -88,9 +90,7 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
             transaction_amount = abs(Decimal(str(transaction.amount)))
             try:
                 converted_amount = currency_service.convert_amount(
-                    transaction_amount,
-                    str(transaction_currency),
-                    budget_currency
+                    transaction_amount, str(transaction_currency), budget_currency
                 )
                 total_spending += converted_amount
             except Exception:
@@ -137,15 +137,13 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
 
             budget_currency = str(budget.currency)
             total_spending = Decimal("0.00")
-            
+
             for transaction, transaction_currency in transactions:
                 # Convert transaction amount to budget currency
                 transaction_amount = abs(Decimal(str(transaction.amount)))
                 try:
                     converted_amount = currency_service.convert_amount(
-                        transaction_amount,
-                        str(transaction_currency),
-                        budget_currency
+                        transaction_amount, str(transaction_currency), budget_currency
                     )
                     total_spending += converted_amount
                 except Exception:
