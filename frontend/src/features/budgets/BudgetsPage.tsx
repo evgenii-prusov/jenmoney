@@ -20,7 +20,6 @@ import {
   Alert,
   Skeleton,
   Tooltip,
-  Collapse,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -66,8 +65,29 @@ export const BudgetsPage: React.FC = () => {
   const summary = budgetsData?.summary;
   const categories = categoriesResponse?.items || [];
 
-  // Group budgets for hierarchical display
-  const { groupSummaries, ungroupedBudgets } = createBudgetGroupSummaries(budgets, categories);
+  // Separate budgets by type (income vs expense)
+  const incomeBudgets = budgets.filter(budget => budget.category?.type === 'income');
+  const expenseBudgets = budgets.filter(budget => budget.category?.type === 'expense');
+
+  // Group budgets hierarchically within each type
+  const incomeGroups = createBudgetGroupSummaries(incomeBudgets, categories);
+  const expenseGroups = createBudgetGroupSummaries(expenseBudgets, categories);
+
+  // Calculate summaries for each type
+  const primaryCurrency = budgets.length > 0 ? budgets[0].currency : (summary?.currency || 'USD');
+  const incomeSummary = {
+    total_planned: incomeBudgets.reduce((sum, budget) => sum + parseFloat(budget.planned_amount), 0),
+    total_actual: incomeBudgets.reduce((sum, budget) => sum + parseFloat(budget.actual_amount), 0),
+    categories_count: incomeBudgets.length,
+    currency: primaryCurrency
+  };
+
+  const expenseSummary = {
+    total_planned: expenseBudgets.reduce((sum, budget) => sum + parseFloat(budget.planned_amount), 0),
+    total_actual: expenseBudgets.reduce((sum, budget) => sum + parseFloat(budget.actual_amount), 0),
+    categories_count: expenseBudgets.length,
+    currency: primaryCurrency
+  };
 
   // Month names for display
   const monthNames = [
@@ -113,6 +133,31 @@ export const BudgetsPage: React.FC = () => {
       }
       return newSet;
     });
+  };
+
+  const formatCurrency = (amount: string, currency: string = 'USD') => {
+    const numAmount = parseFloat(amount);
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency,
+    }).format(numAmount);
+  };
+
+  const getProgressPercentage = (actual: string, planned: string): number => {
+    const actualNum = parseFloat(actual);
+    const plannedNum = parseFloat(planned);
+    if (plannedNum === 0) return 0;
+    return Math.min((actualNum / plannedNum) * 100, 100);
+  };
+
+  const getProgressColor = (percentage: number): 'success' | 'warning' | 'error' => {
+    if (percentage <= 75) return 'success';
+    if (percentage <= 90) return 'warning';
+    return 'error';
+  };
+
+  const getRemainingAmount = (planned: string, actual: string): number => {
+    return parseFloat(planned) - parseFloat(actual);
   };
 
   const renderGroupSummaryRow = (group: BudgetGroupSummary) => {
@@ -196,32 +241,7 @@ export const BudgetsPage: React.FC = () => {
     );
   };
 
-  const formatCurrency = (amount: string, currency: string = 'USD') => {
-    const numAmount = parseFloat(amount);
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-    }).format(numAmount);
-  };
-
-  const getProgressPercentage = (actual: string, planned: string): number => {
-    const actualNum = parseFloat(actual);
-    const plannedNum = parseFloat(planned);
-    if (plannedNum === 0) return 0;
-    return Math.min((actualNum / plannedNum) * 100, 100);
-  };
-
-  const getProgressColor = (percentage: number): 'success' | 'warning' | 'error' => {
-    if (percentage <= 75) return 'success';
-    if (percentage <= 90) return 'warning';
-    return 'error';
-  };
-
-  const getRemainingAmount = (planned: string, actual: string): number => {
-    return parseFloat(planned) - parseFloat(actual);
-  };
-
-  const renderBudgetRow = (budget: Budget, isChildBudget: boolean = false) => {
+  const renderBudgetRow = (budget: Budget, _budgetType: 'income' | 'expense', isChildBudget: boolean = false) => {
     const progressPercentage = getProgressPercentage(budget.actual_amount, budget.planned_amount);
     const remaining = getRemainingAmount(budget.planned_amount, budget.actual_amount);
     const progressColor = getProgressColor(progressPercentage);
@@ -311,6 +331,94 @@ export const BudgetsPage: React.FC = () => {
     );
   };
 
+  const renderBudgetSection = (
+    budgetGroups: { groupSummaries: BudgetGroupSummary[]; ungroupedBudgets: Budget[] }, 
+    sectionType: 'income' | 'expense',
+    sectionSummary: typeof incomeSummary
+  ) => {
+    const { groupSummaries, ungroupedBudgets } = budgetGroups;
+    
+    if (groupSummaries.length === 0 && ungroupedBudgets.length === 0) return null;
+
+    const isIncome = sectionType === 'income';
+    const sectionTitle = isIncome ? '📈 Income Budgets' : '💰 Expense Budgets';
+    const sectionColor = isIncome ? 'success' : 'info';
+    const actualColumnHeader = isIncome ? 'Actual Received' : 'Actual Spent';
+    const remainingColumnHeader = isIncome ? 'Under/Over Budget' : 'Remaining';
+
+    return (
+      <Paper sx={{ mb: 3 }}>
+        {/* Section Header */}
+        <Box 
+          sx={{ 
+            p: 2, 
+            backgroundColor: `${sectionColor}.main`,
+            color: 'white',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          <Typography variant="h6" fontWeight="bold">
+            {sectionTitle}
+          </Typography>
+          <Stack direction="row" spacing={3}>
+            <Box textAlign="center">
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Total Planned: {formatCurrency(sectionSummary.total_planned.toString(), sectionSummary.currency)}
+              </Typography>
+            </Box>
+            <Box textAlign="center">
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Total Actual: {formatCurrency(sectionSummary.total_actual.toString(), sectionSummary.currency)}
+              </Typography>
+            </Box>
+            <Box textAlign="center">
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Categories: {sectionSummary.categories_count}
+              </Typography>
+            </Box>
+          </Stack>
+        </Box>
+
+        {/* Section Table */}
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Category</TableCell>
+                <TableCell align="right">Planned Amount</TableCell>
+                <TableCell align="right">{actualColumnHeader}</TableCell>
+                <TableCell align="center">Progress</TableCell>
+                <TableCell align="right">{remainingColumnHeader}</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {/* Parent category groups */}
+              {groupSummaries.map(group => {
+                const isExpanded = expandedGroups.has(group.parentCategory.id);
+                return (
+                  <React.Fragment key={`group-${group.parentCategory.id}`}>
+                    {renderGroupSummaryRow(group)}
+                    {isExpanded && group.children.map(budget => 
+                      renderBudgetRow(budget, sectionType, true)
+                    )}
+                  </React.Fragment>
+                );
+              })}
+              
+              {/* Top-level budgets (no parent) */}
+              {ungroupedBudgets.map(budget => 
+                renderBudgetRow(budget, sectionType, false)
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+    );
+  };
+
   if (budgetsError) {
     return (
       <Box sx={{ p: 3 }}>
@@ -366,106 +474,109 @@ export const BudgetsPage: React.FC = () => {
         </Stack>
       </Paper>
 
-      {/* Summary Cards */}
+      {/* Enhanced Summary Cards */}
       {summary && (
         <Paper sx={{ p: 3, mb: 3 }}>
-          <Stack direction="row" spacing={4} alignItems="center">
+          {/* Planned Row */}
+          <Typography variant="h6" color="primary" gutterBottom>
+            Planned Budget
+          </Typography>
+          <Stack direction="row" spacing={4} alignItems="center" sx={{ mb: 3 }}>
             <Box>
-              <Typography variant="h6" color="primary">
-                Total Planned
+              <Typography variant="body1" color="success.main" fontWeight="medium">
+                Planned Income
               </Typography>
-              <Typography variant="h4">
-                {formatCurrency(summary.total_planned, summary.currency)}
+              <Typography variant="h5" color="success.main">
+                {formatCurrency(incomeSummary.total_planned.toString(), incomeSummary.currency)}
               </Typography>
             </Box>
             <Box>
-              <Typography variant="h6" color="text.secondary">
-                Total Actual
+              <Typography variant="body1" color="info.main" fontWeight="medium">
+                Planned Expenses
               </Typography>
-              <Typography variant="h4">
-                {formatCurrency(summary.total_actual, summary.currency)}
+              <Typography variant="h5" color="info.main">
+                {formatCurrency(expenseSummary.total_planned.toString(), expenseSummary.currency)}
               </Typography>
             </Box>
             <Box>
-              <Typography variant="h6" color="text.secondary">
-                Remaining
+              <Typography variant="body1" color="text.secondary" fontWeight="medium">
+                Planned Remaining
               </Typography>
               <Typography 
-                variant="h4" 
-                color={getRemainingAmount(summary.total_planned, summary.total_actual) >= 0 ? 'success.main' : 'error.main'}
+                variant="h5" 
+                color={(incomeSummary.total_planned - expenseSummary.total_planned) >= 0 ? 'success.main' : 'error.main'}
               >
                 {formatCurrency(
-                  getRemainingAmount(summary.total_planned, summary.total_actual).toString(),
-                  summary.currency
+                  (incomeSummary.total_planned - expenseSummary.total_planned).toString(),
+                  primaryCurrency
                 )}
               </Typography>
             </Box>
+          </Stack>
+
+          {/* Actual Row */}
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            Actual Results
+          </Typography>
+          <Stack direction="row" spacing={4} alignItems="center">
             <Box>
-              <Typography variant="h6" color="text.secondary">
-                Categories
+              <Typography variant="body1" color="success.dark" fontWeight="medium">
+                Actual Earnings
               </Typography>
-              <Typography variant="h4">
-                {summary.categories_count}
+              <Typography variant="h5" color="success.dark">
+                {formatCurrency(incomeSummary.total_actual.toString(), incomeSummary.currency)}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body1" color="info.dark" fontWeight="medium">
+                Actual Expenses
+              </Typography>
+              <Typography variant="h5" color="info.dark">
+                {formatCurrency(expenseSummary.total_actual.toString(), expenseSummary.currency)}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body1" color="text.secondary" fontWeight="medium">
+                Actual Difference
+              </Typography>
+              <Typography 
+                variant="h5" 
+                color={(incomeSummary.total_actual - expenseSummary.total_actual) >= 0 ? 'success.main' : 'error.main'}
+              >
+                {formatCurrency(
+                  (incomeSummary.total_actual - expenseSummary.total_actual).toString(),
+                  primaryCurrency
+                )}
               </Typography>
             </Box>
           </Stack>
         </Paper>
       )}
 
-      {/* Budgets Table */}
-      <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Category</TableCell>
-                <TableCell align="right">Planned Amount</TableCell>
-                <TableCell align="right">Actual Spent</TableCell>
-                <TableCell align="center">Progress</TableCell>
-                <TableCell align="right">Remaining</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {budgetsLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <Skeleton height={60} />
-                  </TableCell>
-                </TableRow>
-              ) : groupSummaries.length === 0 && ungroupedBudgets.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <Typography variant="body2" color="text.secondary">
-                      No budgets found for {monthNames[selectedMonth - 1]} {selectedYear}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                <>
-                  {/* Parent category groups */}
-                  {groupSummaries.map(group => {
-                    const isExpanded = expandedGroups.has(group.parentCategory.id);
-                    return (
-                      <React.Fragment key={`group-${group.parentCategory.id}`}>
-                        {renderGroupSummaryRow(group)}
-                        {isExpanded && group.children.map(budget => 
-                          renderBudgetRow(budget, true)
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                  
-                  {/* Top-level budgets (no parent) */}
-                  {ungroupedBudgets.map(budget => 
-                    renderBudgetRow(budget, false)
-                  )}
-                </>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      {/* Budgets Sections */}
+      {budgetsLoading ? (
+        <Paper>
+          <Box sx={{ p: 3 }}>
+            <Skeleton height={60} />
+          </Box>
+        </Paper>
+      ) : budgets.length === 0 ? (
+        <Paper>
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              No budgets found for {monthNames[selectedMonth - 1]} {selectedYear}
+            </Typography>
+          </Box>
+        </Paper>
+      ) : (
+        <>
+          {/* Income Budgets Section */}
+          {renderBudgetSection(incomeGroups, 'income', incomeSummary)}
+          
+          {/* Expense Budgets Section */}
+          {renderBudgetSection(expenseGroups, 'expense', expenseSummary)}
+        </>
+      )}
 
       {/* Add Budget FAB */}
       <Fab

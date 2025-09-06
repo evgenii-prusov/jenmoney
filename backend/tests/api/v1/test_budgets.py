@@ -35,7 +35,7 @@ class TestBudgetCreate:
         assert "created_at" in data
         assert "updated_at" in data
 
-    def test_create_budget_for_income_category_fails(self, client: TestClient) -> None:
+    def test_create_budget_for_income_category_succeeds(self, client: TestClient) -> None:
         # Create income category
         category_data = {
             "name": "Salary",
@@ -46,7 +46,7 @@ class TestBudgetCreate:
         assert category_response.status_code == 200
         category = category_response.json()
         
-        # Try to create budget for income category (should fail)
+        # Create budget for income category (should now succeed)
         budget_data = {
             "budget_year": 2025,
             "budget_month": 1,
@@ -55,8 +55,16 @@ class TestBudgetCreate:
             "currency": "USD"
         }
         response = client.post("/api/v1/budgets/", json=budget_data)
-        assert response.status_code == 400
-        assert "Budget can only be created for expense categories" in response.json()["detail"]
+        assert response.status_code == 200
+        data = response.json()
+        assert data["budget_year"] == 2025
+        assert data["budget_month"] == 1
+        assert data["category_id"] == category["id"]
+        assert data["planned_amount"] == "1000.00"
+        assert data["currency"] == "USD"
+        assert "id" in data
+        assert "created_at" in data
+        assert "updated_at" in data
 
     def test_create_duplicate_budget_fails(self, client: TestClient) -> None:
         # Create category

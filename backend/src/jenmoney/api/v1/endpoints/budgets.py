@@ -31,7 +31,7 @@ def create_budget(
         raise HTTPException(status_code=400, detail=str(e))
 
     # Calculate actual spending for this category/period
-    actual_amount = crud.budget.get_actual_spending(
+    actual_amount = crud.budget.get_actual_amount(
         db,
         category_id=budget_obj.category_id,
         year=budget_obj.budget_year,
@@ -61,8 +61,8 @@ def read_budgets(
     settings = user_settings.get_or_create(db)
     currency_service = CurrencyService(db)
 
-    # Get actual spending for all categories in this period
-    actual_spending = crud.budget.get_actual_spending_all_categories(db, year=year, month=month)
+    # Get actual amounts for all categories in this period
+    actual_amounts = crud.budget.get_actual_amounts_all_categories(db, year=year, month=month)
 
     # Build response with actual amounts
     budget_responses = []
@@ -70,7 +70,7 @@ def read_budgets(
     total_actual = Decimal("0.00")
 
     for budget_obj in budgets:
-        actual_amount = actual_spending.get(budget_obj.category_id, Decimal("0.00"))
+        actual_amount = actual_amounts.get(budget_obj.category_id, Decimal("0.00"))
         response_data = schemas.BudgetResponse.model_validate(budget_obj)
         response_data.actual_amount = actual_amount
         budget_responses.append(response_data)
@@ -121,8 +121,8 @@ def read_budget(*, db: Session = Depends(get_db), budget_id: int) -> Any:
     if budget_obj is None:
         raise HTTPException(status_code=404, detail="Budget not found")
 
-    # Calculate actual spending
-    actual_amount = crud.budget.get_actual_spending(
+    # Calculate actual amount
+    actual_amount = crud.budget.get_actual_amount(
         db,
         category_id=budget_obj.category_id,
         year=budget_obj.budget_year,
@@ -149,8 +149,8 @@ def update_budget(
 
     budget_obj = crud.budget.update(db, db_obj=budget_obj, obj_in=budget_in)
 
-    # Calculate actual spending
-    actual_amount = crud.budget.get_actual_spending(
+    # Calculate actual amount
+    actual_amount = crud.budget.get_actual_amount(
         db,
         category_id=budget_obj.category_id,
         year=budget_obj.budget_year,
@@ -170,8 +170,8 @@ def delete_budget(*, db: Session = Depends(get_db), budget_id: int) -> Any:
     if budget_obj is None:
         raise HTTPException(status_code=404, detail="Budget not found")
 
-    # Calculate actual spending before deletion
-    actual_amount = crud.budget.get_actual_spending(
+    # Calculate actual amount before deletion
+    actual_amount = crud.budget.get_actual_amount(
         db,
         category_id=budget_obj.category_id,
         year=budget_obj.budget_year,
