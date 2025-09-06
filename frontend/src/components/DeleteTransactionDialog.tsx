@@ -122,7 +122,7 @@ export const DeleteTransactionDialog: React.FC<DeleteTransactionDialogProps> = (
                   Date:
                 </Typography>
                 <Typography variant="body2">
-                  {new Date(transaction.transaction_date).toLocaleDateString()}
+                  {new Date(transaction.transaction_date).toISOString().split('T')[0]}
                 </Typography>
               </Box>
 
