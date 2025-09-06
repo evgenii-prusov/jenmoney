@@ -1,16 +1,20 @@
-.PHONY: help dev dev-backend dev-frontend stop-all clean-ports lint format typecheck test db-init db-clean clean install-backend install-frontend install-pre-commit setup pr-check branch-new branch-sync
+.PHONY: help dev dev-backend dev-frontend stop-all clean-ports lint format typecheck test db-init db-clean clean install-backend install-frontend install-pre-commit setup pr-check branch-new branch-sync docker-dev docker-build docker-test deploy-dev
 
 # Default target
 help: ## Show this help message
 	@echo "JenMoney Development Commands"
 	@echo ""
 	@echo "Quick start:"
-	@echo "  make setup    # Initial setup (install deps + init db)"
-	@echo "  make dev      # Start both frontend and backend"
-	@echo "  make stop-all # Stop all servers"
+	@echo "  make setup       # Initial setup (install deps + init db)"
+	@echo "  make dev         # Start both frontend and backend"
+	@echo "  make stop-all    # Stop all servers"
+	@echo ""
+	@echo "Docker deployment:"
+	@echo "  make docker-dev  # Start with Docker (for testing deployment)"
+	@echo "  make deploy-dev  # Deploy production version locally"
 	@echo ""
 	@echo "All commands:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\\n", $$1, $$2}'
 
 # ============ Development Commands ============
 dev: ## Start both frontend and backend servers
@@ -107,6 +111,38 @@ pr-check: ## Run all checks before creating PR
 	@make test
 	@echo ""
 	@echo "✅ All checks passed! Ready to create PR."
+
+# ============ Docker Commands ============
+docker-build: ## Build Docker images
+	@echo "Building Docker images..."
+	docker build -t jenmoney-backend ./backend
+	docker build -t jenmoney-frontend ./frontend
+
+docker-dev: ## Start development environment with Docker
+	@echo "Starting development environment with Docker..."
+	docker-compose -f docker-compose.dev.yml up -d
+	@echo "🌐 Frontend: http://localhost:3000"
+	@echo "🔗 Backend: http://localhost:8000"
+	@echo "🗄️ Database: localhost:5432"
+
+docker-stop: ## Stop Docker development environment
+	docker-compose -f docker-compose.dev.yml down
+
+docker-logs: ## View Docker logs
+	docker-compose -f docker-compose.dev.yml logs -f
+
+docker-test: ## Test Docker setup locally
+	./deployment/test-docker.sh
+
+deploy-dev: ## Deploy development version with Docker
+	@echo "Deploying development version..."
+	@if [ ! -f .env.production ]; then \
+		echo "Creating .env.production from template..."; \
+		cp .env.production.example .env.production; \
+		echo "⚠️  Please edit .env.production before continuing"; \
+		exit 1; \
+	fi
+	./deployment/deploy.sh
 
 branch-new: ## Create new feature branch (usage: make branch-new name=feature-name)
 	@if [ -z "$(name)" ]; then \

@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jenmoney
+      POSTGRES_USER: jenmoney
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - jenmoney-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jenmoney -d jenmoney"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      JENMONEY_DATABASE_URL: postgresql://jenmoney:${POSTGRES_PASSWORD}@postgres:5432/jenmoney
+      JENMONEY_ENVIRONMENT: production
+      JENMONEY_DEBUG: "false"
+      JENMONEY_SECRET_KEY: ${SECRET_KEY}
+      JENMONEY_CORS_ORIGINS: '["http://localhost", "https://${DOMAIN}", "http://${DOMAIN}"]'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - jenmoney-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost/api}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - jenmoney-network
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - jenmoney-network
+
+volumes:
+  postgres_data:
+
+networks:
+  jenmoney-network:
+    driver: bridge
