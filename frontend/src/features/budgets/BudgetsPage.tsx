@@ -33,7 +33,7 @@ import { useBudgets, useDeleteBudget } from '../../hooks/useBudgets';
 import { categoriesApi } from '../../api/categories';
 import { BudgetForm } from '../../components/BudgetForm';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { CategoryDisplay, findCategoryById } from '../../components/CategoryDisplay';
+import { CategoryDisplay } from '../../components/CategoryDisplay';
 import type { Budget } from '../../types/budget';
 
 export const BudgetsPage: React.FC = () => {
@@ -262,6 +262,8 @@ export const BudgetsPage: React.FC = () => {
                           <CategoryDisplay 
                             category={budget.category} 
                             showDescription 
+                            showParentHierarchy={true}
+                            allCategories={categories}
                           />
                         ) : (
                           <Typography variant="body1" fontWeight="medium">
