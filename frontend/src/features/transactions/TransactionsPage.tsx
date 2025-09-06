@@ -280,7 +280,7 @@ export const TransactionsPage: React.FC = () => {
                 transactions.map((transaction) => (
                   <TableRow key={transaction.id} hover>
                     <TableCell>
-                      {new Date(transaction.transaction_date).toLocaleDateString()}
+                      {new Date(transaction.transaction_date).toISOString().split('T')[0]}
                     </TableCell>
                     <TableCell>
                       {accountsMap[transaction.account_id]?.name || `Account ${transaction.account_id}`}
