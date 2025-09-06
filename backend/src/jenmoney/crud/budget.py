@@ -5,8 +5,10 @@ from sqlalchemy import and_, func, extract
 from jenmoney.crud.base import CRUDBase
 from jenmoney.models.budget import Budget
 from jenmoney.models.transaction import Transaction
+from jenmoney.models.account import Account
 from jenmoney.models.category import Category, CategoryType
 from jenmoney.schemas.budget import BudgetCreate, BudgetUpdate
+from jenmoney.services.currency_service import CurrencyService
 
 
 class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
@@ -54,11 +56,21 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
         # Import here to avoid circular imports
         from jenmoney.crud.category import category as category_crud
 
+        # Get the budget to know its currency
+        budget = self.get_by_category_and_period(db, category_id=category_id, year=year, month=month)
+        if not budget:
+            return Decimal("0.00")
+        
+        budget_currency = str(budget.currency)
+        currency_service = CurrencyService(db)
+
         # Get all descendant category IDs (including the category itself)
         descendant_ids = category_crud.get_all_descendant_ids(db, category_id)
 
-        result = (
-            db.query(func.coalesce(func.sum(Transaction.amount), 0))
+        # Get all transactions for these categories in the specified period
+        transactions = (
+            db.query(Transaction, Account.currency)
+            .join(Account, Transaction.account_id == Account.id)
             .filter(
                 and_(
                     Transaction.category_id.in_(descendant_ids),
@@ -67,10 +79,25 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
                     Transaction.amount < 0,  # Only expenses (negative amounts)
                 )
             )
-            .scalar()
+            .all()
         )
-        # Return absolute value since expenses are negative
-        return abs(Decimal(str(result or 0)))
+
+        total_spending = Decimal("0.00")
+        for transaction, transaction_currency in transactions:
+            # Convert transaction amount to budget currency
+            transaction_amount = abs(Decimal(str(transaction.amount)))
+            try:
+                converted_amount = currency_service.convert_amount(
+                    transaction_amount,
+                    str(transaction_currency),
+                    budget_currency
+                )
+                total_spending += converted_amount
+            except Exception:
+                # If conversion fails, use original amount as fallback
+                total_spending += transaction_amount
+
+        return total_spending
 
     def get_actual_spending_all_categories(
         self, db: Session, *, year: int, month: int
@@ -78,12 +105,14 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
         """Get actual spending for all categories in a specific month.
 
         For each category, includes spending from the category itself and all its children.
+        Amounts are converted to each budget's currency.
         """
         # Import here to avoid circular imports
         from jenmoney.crud.category import category as category_crud
 
         # Get all budgets for this period to know which categories we need to calculate
         budgets = self.get_by_period(db, year=year, month=month)
+        currency_service = CurrencyService(db)
 
         spending_dict: dict[int, Decimal] = {}
         for budget in budgets:
@@ -91,8 +120,10 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
             assert budget.category_id is not None
             descendant_ids = category_crud.get_all_descendant_ids(db, budget.category_id)
 
-            result = (
-                db.query(func.coalesce(func.sum(Transaction.amount), 0))
+            # Get all transactions for these categories in the specified period
+            transactions = (
+                db.query(Transaction, Account.currency)
+                .join(Account, Transaction.account_id == Account.id)
                 .filter(
                     and_(
                         Transaction.category_id.in_(descendant_ids),
@@ -101,12 +132,28 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
                         Transaction.amount < 0,  # Only expenses
                     )
                 )
-                .scalar()
+                .all()
             )
 
-            # Store absolute value since expenses are negative
+            budget_currency = str(budget.currency)
+            total_spending = Decimal("0.00")
+            
+            for transaction, transaction_currency in transactions:
+                # Convert transaction amount to budget currency
+                transaction_amount = abs(Decimal(str(transaction.amount)))
+                try:
+                    converted_amount = currency_service.convert_amount(
+                        transaction_amount,
+                        str(transaction_currency),
+                        budget_currency
+                    )
+                    total_spending += converted_amount
+                except Exception:
+                    # If conversion fails, use original amount as fallback
+                    total_spending += transaction_amount
+
             assert budget.category_id is not None
-            spending_dict[budget.category_id] = abs(Decimal(str(result or 0)))
+            spending_dict[budget.category_id] = total_spending
 
         return spending_dict
 
