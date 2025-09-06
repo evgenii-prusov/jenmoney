@@ -394,3 +394,87 @@ class TestBudgetCurrencyConversion:
         budget_item = data["items"][0]
         assert budget_item["currency"] == "EUR"
         assert budget_item["planned_amount"] == "100.00"
+        
+        # Verify new income/expense breakdown in summary
+        assert "income_planned" in summary
+        assert "income_actual" in summary  
+        assert "expense_planned" in summary
+        assert "expense_actual" in summary
+        
+        # Since we created an expense category, expense_planned should equal total_planned
+        expense_planned = Decimal(summary["expense_planned"])
+        assert expense_planned == total_planned
+        
+        # Income should be zero since we only created expense budgets
+        income_planned = Decimal(summary["income_planned"])
+        assert income_planned == Decimal("0.00")
+
+    def test_budget_summary_separates_income_and_expense(self, client: TestClient) -> None:
+        """Test that budget summary correctly separates income and expense totals."""
+        # Set user's default currency to EUR for easier calculations
+        response = client.patch("/api/v1/settings/", json={"default_currency": "EUR"})
+        assert response.status_code == 200
+        
+        # Create income category
+        income_category_response = client.post("/api/v1/categories/", json={
+            "name": "Salary",
+            "type": "income",
+            "description": "Income category"
+        })
+        assert income_category_response.status_code == 200
+        income_category_id = income_category_response.json()["id"]
+        
+        # Create expense category  
+        expense_category_response = client.post("/api/v1/categories/", json={
+            "name": "Food",
+            "type": "expense", 
+            "description": "Expense category"
+        })
+        assert expense_category_response.status_code == 200
+        expense_category_id = expense_category_response.json()["id"]
+        
+        # Create income budget in USD (should be converted to EUR)
+        income_budget_response = client.post("/api/v1/budgets/", json={
+            "budget_year": 2025,
+            "budget_month": 4,
+            "category_id": income_category_id,
+            "planned_amount": "1000.00",
+            "currency": "USD"
+        })
+        assert income_budget_response.status_code == 200
+        
+        # Create expense budget in EUR
+        expense_budget_response = client.post("/api/v1/budgets/", json={
+            "budget_year": 2025,
+            "budget_month": 4, 
+            "category_id": expense_category_id,
+            "planned_amount": "500.00",
+            "currency": "EUR"
+        })
+        assert expense_budget_response.status_code == 200
+        
+        # Get budgets for the month
+        budgets_response = client.get("/api/v1/budgets/?year=2025&month=4")
+        assert budgets_response.status_code == 200
+        
+        data = budgets_response.json()
+        summary = data["summary"]
+        
+        # Verify summary is in user's default currency (EUR)
+        assert summary["currency"] == "EUR"
+        
+        # Verify income and expense are properly separated and converted
+        from decimal import Decimal
+        income_planned = Decimal(summary["income_planned"])
+        expense_planned = Decimal(summary["expense_planned"])
+        total_planned = Decimal(summary["total_planned"])
+        
+        # Income should be converted from USD to EUR (roughly 1000 * 0.85 = 850)
+        assert income_planned > Decimal("800")  # USD to EUR conversion
+        assert income_planned < Decimal("1000")  # Should be less than original USD amount
+        
+        # Expense should remain 500 EUR (no conversion needed)
+        assert expense_planned == Decimal("500.00")
+        
+        # Total should be sum of converted amounts
+        assert total_planned == income_planned + expense_planned

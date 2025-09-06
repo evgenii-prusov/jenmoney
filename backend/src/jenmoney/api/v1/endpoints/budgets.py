@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from jenmoney import crud, schemas
 from jenmoney.crud.user_settings import user_settings
 from jenmoney.database import get_db
+from jenmoney.models.category import CategoryType
 from jenmoney.services.currency_service import CurrencyService
 
 router = APIRouter()
@@ -68,6 +69,10 @@ def read_budgets(
     budget_responses = []
     total_planned = Decimal("0.00")
     total_actual = Decimal("0.00")
+    income_planned = Decimal("0.00")
+    income_actual = Decimal("0.00")
+    expense_planned = Decimal("0.00")
+    expense_actual = Decimal("0.00")
 
     for budget_obj in budgets:
         actual_amount = actual_amounts.get(budget_obj.category_id, Decimal("0.00"))
@@ -89,10 +94,29 @@ def read_budgets(
             )
             total_planned += planned_in_default
             total_actual += actual_in_default
+
+            # Separate by category type (income vs expense)
+            if budget_obj.category and budget_obj.category.type == CategoryType.income:
+                income_planned += planned_in_default
+                income_actual += actual_in_default
+            else:
+                # Default to expense if no category or type is not income
+                expense_planned += planned_in_default
+                expense_actual += actual_in_default
+
         except Exception:
             # If conversion fails, use original amounts as fallback
-            total_planned += Decimal(str(budget_obj.planned_amount))
+            planned_amount = Decimal(str(budget_obj.planned_amount))
+            total_planned += planned_amount
             total_actual += actual_amount
+
+            # Separate by category type even for fallback
+            if budget_obj.category and budget_obj.category.type == CategoryType.income:
+                income_planned += planned_amount
+                income_actual += actual_amount
+            else:
+                expense_planned += planned_amount
+                expense_actual += actual_amount
 
     # Create summary with default currency
     summary = schemas.BudgetSummary(
@@ -102,6 +126,10 @@ def read_budgets(
         total_actual=total_actual,
         currency=str(settings.default_currency),
         categories_count=len(budgets),
+        income_planned=income_planned,
+        income_actual=income_actual,
+        expense_planned=expense_planned,
+        expense_actual=expense_actual,
     )
 
     return schemas.BudgetListResponse(

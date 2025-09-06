@@ -57,6 +57,11 @@ class BudgetSummary(BaseAPIModel):
     total_actual: Decimal
     currency: str
     categories_count: int
+    # Separate income and expense totals for proper currency conversion display
+    income_planned: Decimal = Decimal("0.00")
+    income_actual: Decimal = Decimal("0.00")
+    expense_planned: Decimal = Decimal("0.00")
+    expense_actual: Decimal = Decimal("0.00")
 
 
 class BudgetListResponse(BaseAPIModel):
