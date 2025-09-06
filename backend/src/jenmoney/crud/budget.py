@@ -53,10 +53,10 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
         """Calculate actual spending for a category and all its children in a specific month."""
         # Import here to avoid circular imports
         from jenmoney.crud.category import category as category_crud
-        
+
         # Get all descendant category IDs (including the category itself)
         descendant_ids = category_crud.get_all_descendant_ids(db, category_id)
-        
+
         result = (
             db.query(func.coalesce(func.sum(Transaction.amount), 0))
             .filter(
@@ -76,21 +76,21 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
         self, db: Session, *, year: int, month: int
     ) -> dict[int, Decimal]:
         """Get actual spending for all categories in a specific month.
-        
+
         For each category, includes spending from the category itself and all its children.
         """
         # Import here to avoid circular imports
         from jenmoney.crud.category import category as category_crud
-        
+
         # Get all budgets for this period to know which categories we need to calculate
         budgets = self.get_by_period(db, year=year, month=month)
-        
+
         spending_dict: dict[int, Decimal] = {}
         for budget in budgets:
             # Get all descendant category IDs (including the category itself)
             assert budget.category_id is not None
             descendant_ids = category_crud.get_all_descendant_ids(db, budget.category_id)
-            
+
             result = (
                 db.query(func.coalesce(func.sum(Transaction.amount), 0))
                 .filter(
@@ -103,11 +103,11 @@ class CRUDBudget(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
                 )
                 .scalar()
             )
-            
+
             # Store absolute value since expenses are negative
             assert budget.category_id is not None
             spending_dict[budget.category_id] = abs(Decimal(str(result or 0)))
-        
+
         return spending_dict
 
     def create_with_validation(self, db: Session, *, obj_in: BudgetCreate) -> Budget:
