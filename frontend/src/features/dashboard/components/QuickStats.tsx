@@ -105,8 +105,7 @@ export const QuickStats: React.FC = () => {
     account.balance > max.balance ? account : max
   );
 
-  // Calculate transaction analytics - simplified without currency conversion for now
-  // Note: In a real implementation, we'd need proper currency conversion rates
+  // Calculate transaction analytics with proper currency handling
   const totalTransactions = transactions.length;
   
   // Get the most recent 30 days for trend analysis
@@ -117,15 +116,27 @@ export const QuickStats: React.FC = () => {
     new Date(t.transaction_date) >= thirtyDaysAgo
   );
   
-  // For simplicity, we'll calculate totals without currency conversion
-  // This is a limitation that should be addressed with proper currency conversion API
-  const recentIncome = recentTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-  const recentExpenses = Math.abs(recentTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+  // Group transactions by currency for proper handling
+  const transactionsByCurrency = recentTransactions.reduce((acc, t) => {
+    if (!acc[t.currency]) {
+      acc[t.currency] = { income: 0, expenses: 0 };
+    }
+    if (t.amount > 0) {
+      acc[t.currency].income += t.amount;
+    } else {
+      acc[t.currency].expenses += Math.abs(t.amount);
+    }
+    return acc;
+  }, {} as Record<string, { income: number; expenses: number }>);
+  
+  // Check if we have multiple currencies
+  const currencies = Object.keys(transactionsByCurrency);
+  const hasMixedCurrencies = currencies.length > 1;
 
   // Use default currency symbol for display
-  const defaultCurrencySymbol = currencySymbols[defaultCurrency];
+  // Note: Remove unused defaultCurrencySymbol as we now handle currencies individually
 
-  // Category breakdown for recent expenses
+  // Category breakdown for recent expenses - handle mixed currencies
   const categoryMap = categories.reduce((acc, cat) => {
     acc[cat.id] = cat;
     return acc;
@@ -138,19 +149,21 @@ export const QuickStats: React.FC = () => {
       const category = categoryMap[categoryId];
       if (category) {
         const categoryName = category.name;
-        if (!acc[categoryName]) {
-          acc[categoryName] = 0;
+        const currency = t.currency;
+        const key = hasMixedCurrencies ? `${categoryName} (${currency})` : categoryName;
+        if (!acc[key]) {
+          acc[key] = { amount: 0, currency };
         }
-        acc[categoryName] += Math.abs(t.amount);
+        acc[key].amount += Math.abs(t.amount);
       }
       return acc;
-    }, {} as Record<string, number>);
+    }, {} as Record<string, { amount: number; currency: string }>);
 
   const topCategories = Object.entries(expensesByCategory)
-    .sort(([, a], [, b]) => b - a)
+    .sort(([, a], [, b]) => b.amount - a.amount)
     .slice(0, 3);
 
-  // Monthly comparison (current vs previous month)
+  // Monthly comparison (current vs previous month) - handle mixed currencies
   const currentMonthStart = new Date(currentYear, currentMonth - 1, 1);
   const currentMonthTransactions = transactions.filter(t => 
     new Date(t.transaction_date) >= currentMonthStart
@@ -163,8 +176,32 @@ export const QuickStats: React.FC = () => {
     return date >= prevMonthStart && date <= prevMonthEnd;
   });
 
-  const currentMonthExpenses = Math.abs(currentMonthTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
-  const prevMonthExpenses = Math.abs(prevMonthTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+  // Calculate expenses by currency for trend analysis
+  const currentMonthExpensesByCurrency = currentMonthTransactions
+    .filter(t => t.amount < 0)
+    .reduce((acc, t) => {
+      if (!acc[t.currency]) acc[t.currency] = 0;
+      acc[t.currency] += Math.abs(t.amount);
+      return acc;
+    }, {} as Record<string, number>);
+    
+  const prevMonthExpensesByCurrency = prevMonthTransactions
+    .filter(t => t.amount < 0)
+    .reduce((acc, t) => {
+      if (!acc[t.currency]) acc[t.currency] = 0;
+      acc[t.currency] += Math.abs(t.amount);
+      return acc;
+    }, {} as Record<string, number>);
+
+  // For trend, use the primary currency (most used) or default currency
+  const primaryCurrency = Object.keys(currentMonthExpensesByCurrency).length > 0 
+    ? Object.keys(currentMonthExpensesByCurrency).reduce((a, b) => 
+        currentMonthExpensesByCurrency[a] > currentMonthExpensesByCurrency[b] ? a : b
+      )
+    : defaultCurrency;
+    
+  const currentMonthExpenses = currentMonthExpensesByCurrency[primaryCurrency] || 0;
+  const prevMonthExpenses = prevMonthExpensesByCurrency[primaryCurrency] || 0;
   
   const expensesTrend = prevMonthExpenses > 0 ? 
     ((currentMonthExpenses - prevMonthExpenses) / prevMonthExpenses) * 100 : 0;
@@ -201,58 +238,107 @@ export const QuickStats: React.FC = () => {
           </Box>
 
           {/* Income vs Expenses */}
-          {(recentIncome > 0 || recentExpenses > 0) && (
+          {(Object.keys(transactionsByCurrency).length > 0) && (
             <Box sx={{ mb: 2 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Income vs Expenses (Mixed Currencies)
+                Income vs Expenses (Last 30 days)
               </Typography>
-              <Box sx={{ mb: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography variant="body2" color="success.main">
-                    Income
+              
+              {hasMixedCurrencies ? (
+                // Show by currency when mixed currencies exist
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                    Multiple currencies - shown separately:
                   </Typography>
-                  <Typography variant="body2" color="success.main" sx={{ fontWeight: 500 }}>
-                    {defaultCurrencySymbol}{recentIncome.toLocaleString()}
-                  </Typography>
+                  {currencies.map(currency => {
+                    const data = transactionsByCurrency[currency];
+                    const symbol = currencySymbols[currency as Currency] || currency;
+                    return (
+                      <Box key={currency} sx={{ mb: 1.5, p: 1, backgroundColor: 'background.default', borderRadius: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
+                          {currency}
+                        </Typography>
+                        <Box sx={{ mb: 0.5 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
+                            <Typography variant="caption" color="success.main">
+                              Income
+                            </Typography>
+                            <Typography variant="caption" color="success.main">
+                              {symbol}{data.income.toLocaleString()}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="caption" color="error.main">
+                              Expenses
+                            </Typography>
+                            <Typography variant="caption" color="error.main">
+                              {symbol}{data.expenses.toLocaleString()}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                    );
+                  })}
                 </Box>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={recentIncome > 0 ? Math.min((recentIncome / (recentIncome + recentExpenses)) * 100, 100) : 0}
-                  sx={{ 
-                    height: 6, 
-                    borderRadius: 3,
-                    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-                    '& .MuiLinearProgress-bar': {
-                      backgroundColor: 'success.main',
-                    }
-                  }} 
-                />
-              </Box>
-              <Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                  <Typography variant="body2" color="error.main">
-                    Expenses
-                  </Typography>
-                  <Typography variant="body2" color="error.main" sx={{ fontWeight: 500 }}>
-                    {defaultCurrencySymbol}{recentExpenses.toLocaleString()}
-                  </Typography>
+              ) : (
+                // Single currency - show with progress bars
+                <Box>
+                  {currencies.map(currency => {
+                    const data = transactionsByCurrency[currency];
+                    const symbol = currencySymbols[currency as Currency] || currency;
+                    const total = data.income + data.expenses;
+                    
+                    return (
+                      <Box key={currency}>
+                        <Box sx={{ mb: 1 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Typography variant="body2" color="success.main">
+                              Income
+                            </Typography>
+                            <Typography variant="body2" color="success.main" sx={{ fontWeight: 500 }}>
+                              {symbol}{data.income.toLocaleString()}
+                            </Typography>
+                          </Box>
+                          <LinearProgress 
+                            variant="determinate" 
+                            value={total > 0 ? (data.income / total) * 100 : 0}
+                            sx={{ 
+                              height: 6, 
+                              borderRadius: 3,
+                              backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                              '& .MuiLinearProgress-bar': {
+                                backgroundColor: 'success.main',
+                              }
+                            }} 
+                          />
+                        </Box>
+                        <Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Typography variant="body2" color="error.main">
+                              Expenses
+                            </Typography>
+                            <Typography variant="body2" color="error.main" sx={{ fontWeight: 500 }}>
+                              {symbol}{data.expenses.toLocaleString()}
+                            </Typography>
+                          </Box>
+                          <LinearProgress 
+                            variant="determinate" 
+                            value={total > 0 ? (data.expenses / total) * 100 : 0}
+                            sx={{ 
+                              height: 6, 
+                              borderRadius: 3,
+                              backgroundColor: 'rgba(244, 67, 54, 0.2)',
+                              '& .MuiLinearProgress-bar': {
+                                backgroundColor: 'error.main',
+                              }
+                            }} 
+                          />
+                        </Box>
+                      </Box>
+                    );
+                  })}
                 </Box>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={recentExpenses > 0 ? Math.min((recentExpenses / (recentIncome + recentExpenses)) * 100, 100) : 0}
-                  sx={{ 
-                    height: 6, 
-                    borderRadius: 3,
-                    backgroundColor: 'rgba(244, 67, 54, 0.2)',
-                    '& .MuiLinearProgress-bar': {
-                      backgroundColor: 'error.main',
-                    }
-                  }} 
-                />
-              </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                * Amounts shown without currency conversion
-              </Typography>
+              )}
             </Box>
           )}
 
@@ -269,7 +355,7 @@ export const QuickStats: React.FC = () => {
                 border: '1px solid',
                 borderColor: 'divider'
               }}>
-                {topCategories.map(([category, amount], index) => (
+                {topCategories.map(([category, data], index) => (
                   <Box key={category} sx={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
@@ -290,7 +376,7 @@ export const QuickStats: React.FC = () => {
                       </Typography>
                     </Box>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>
-                      {defaultCurrencySymbol}{amount.toLocaleString()}
+                      {currencySymbols[data.currency as Currency] || data.currency}{data.amount.toLocaleString()}
                     </Typography>
                   </Box>
                 ))}
