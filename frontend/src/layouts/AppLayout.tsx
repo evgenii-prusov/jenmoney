@@ -12,6 +12,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
@@ -36,10 +37,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
   // Determine current tab based on pathname
   const getCurrentTab = () => {
-    if (location.pathname === '/transfers') return 1;
-    if (location.pathname === '/transactions') return 2;
-    if (location.pathname === '/budgets') return 3;
-    return 0; // Default to accounts
+    if (location.pathname === '/accounts') return 1;
+    if (location.pathname === '/transfers') return 2;
+    if (location.pathname === '/transactions') return 3;
+    if (location.pathname === '/budgets') return 4;
+    return 0; // Default to dashboard
   };
   
   const currentTab = getCurrentTab();
@@ -100,11 +102,24 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             }}
           >
             <Tab
+              label="Dashboard"
+              icon={<DashboardIcon />}
+              iconPosition="start"
+              component={Link}
+              to="/"
+              sx={{
+                '& .MuiTab-iconWrapper': {
+                  marginRight: 1,
+                  marginBottom: 0,
+                },
+              }}
+            />
+            <Tab
               label="Accounts"
               icon={<AccountBalanceWalletIcon />}
               iconPosition="start"
               component={Link}
-              to="/"
+              to="/accounts"
               sx={{
                 '& .MuiTab-iconWrapper': {
                   marginRight: 1,

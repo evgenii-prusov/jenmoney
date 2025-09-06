@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TransfersRouteImport } from './routes/transfers'
 import { Route as TransactionsRouteImport } from './routes/transactions'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as BudgetsRouteImport } from './routes/budgets'
+import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TransfersRoute = TransfersRouteImport.update({
@@ -24,9 +26,19 @@ const TransactionsRoute = TransactionsRouteImport.update({
   path: '/transactions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BudgetsRoute = BudgetsRouteImport.update({
   id: '/budgets',
   path: '/budgets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountsRoute = AccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -37,34 +49,61 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/accounts': typeof AccountsRoute
   '/budgets': typeof BudgetsRoute
+  '/dashboard': typeof DashboardRoute
   '/transactions': typeof TransactionsRoute
   '/transfers': typeof TransfersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/accounts': typeof AccountsRoute
   '/budgets': typeof BudgetsRoute
+  '/dashboard': typeof DashboardRoute
   '/transactions': typeof TransactionsRoute
   '/transfers': typeof TransfersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/accounts': typeof AccountsRoute
   '/budgets': typeof BudgetsRoute
+  '/dashboard': typeof DashboardRoute
   '/transactions': typeof TransactionsRoute
   '/transfers': typeof TransfersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/budgets' | '/transactions' | '/transfers'
+  fullPaths:
+    | '/'
+    | '/accounts'
+    | '/budgets'
+    | '/dashboard'
+    | '/transactions'
+    | '/transfers'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/budgets' | '/transactions' | '/transfers'
-  id: '__root__' | '/' | '/budgets' | '/transactions' | '/transfers'
+  to:
+    | '/'
+    | '/accounts'
+    | '/budgets'
+    | '/dashboard'
+    | '/transactions'
+    | '/transfers'
+  id:
+    | '__root__'
+    | '/'
+    | '/accounts'
+    | '/budgets'
+    | '/dashboard'
+    | '/transactions'
+    | '/transfers'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountsRoute: typeof AccountsRoute
   BudgetsRoute: typeof BudgetsRoute
+  DashboardRoute: typeof DashboardRoute
   TransactionsRoute: typeof TransactionsRoute
   TransfersRoute: typeof TransfersRoute
 }
@@ -85,11 +124,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TransactionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/budgets': {
       id: '/budgets'
       path: '/budgets'
       fullPath: '/budgets'
       preLoaderRoute: typeof BudgetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/accounts': {
+      id: '/accounts'
+      path: '/accounts'
+      fullPath: '/accounts'
+      preLoaderRoute: typeof AccountsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -104,7 +157,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountsRoute: AccountsRoute,
   BudgetsRoute: BudgetsRoute,
+  DashboardRoute: DashboardRoute,
   TransactionsRoute: TransactionsRoute,
   TransfersRoute: TransfersRoute,
 }

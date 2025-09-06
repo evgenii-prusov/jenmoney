@@ -47,14 +47,14 @@ export const TotalBalance: React.FC<TotalBalanceProps> = ({ data, loading }) => 
   }
 
   return (
-    <Paper sx={{ p: 3, mb: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6" color="text.secondary">
+    <Paper sx={{ p: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <Typography variant="body1" color="text.secondary">
           Всего Деняк
         </Typography>
         <Chip label={data.default_currency} color="primary" size="small"/>
       </Box>
-      <Typography variant="h3" color="primary" sx={{ fontWeight: 700, mb: 2 }}>
+      <Typography variant="h4" color="primary" sx={{ fontWeight: 700 }}>
         {formatBalance(data.total_balance, data.default_currency)}
       </Typography>
     </Paper>
