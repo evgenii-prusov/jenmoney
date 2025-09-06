@@ -27,6 +27,8 @@ import {
   Delete as DeleteIcon,
   TrendingUp,
   TrendingDown,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { useBudgets, useDeleteBudget } from '../../hooks/useBudgets';
@@ -34,7 +36,9 @@ import { categoriesApi } from '../../api/categories';
 import { BudgetForm } from '../../components/BudgetForm';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { CategoryDisplay } from '../../components/CategoryDisplay';
+import { createBudgetGroupSummaries } from '../../utils/budgetGrouping';
 import type { Budget } from '../../types/budget';
+import type { BudgetGroupSummary } from '../../utils/budgetGrouping';
 
 export const BudgetsPage: React.FC = () => {
   const currentDate = new Date();
@@ -45,6 +49,7 @@ export const BudgetsPage: React.FC = () => {
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [budgetToDelete, setBudgetToDelete] = useState<Budget | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
 
   // Queries - Use hierarchical categories to match Transactions page
   const { data: budgetsData, isLoading: budgetsLoading, error: budgetsError } = useBudgets(selectedYear, selectedMonth);
@@ -63,6 +68,10 @@ export const BudgetsPage: React.FC = () => {
   // Separate budgets by type (income vs expense)
   const incomeBudgets = budgets.filter(budget => budget.category?.type === 'income');
   const expenseBudgets = budgets.filter(budget => budget.category?.type === 'expense');
+
+  // Group budgets hierarchically within each type
+  const incomeGroups = createBudgetGroupSummaries(incomeBudgets, categories);
+  const expenseGroups = createBudgetGroupSummaries(expenseBudgets, categories);
 
   // Calculate summaries for each type
   const incomeSummary = {
@@ -113,6 +122,18 @@ export const BudgetsPage: React.FC = () => {
     }
   };
 
+  const toggleGroupExpansion = (groupId: number) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId);
+      } else {
+        newSet.add(groupId);
+      }
+      return newSet;
+    });
+  };
+
   const formatCurrency = (amount: string, currency: string = 'USD') => {
     const numAmount = parseFloat(amount);
     return new Intl.NumberFormat('en-US', {
@@ -136,6 +157,87 @@ export const BudgetsPage: React.FC = () => {
 
   const getRemainingAmount = (planned: string, actual: string): number => {
     return parseFloat(planned) - parseFloat(actual);
+  };
+
+  const renderGroupSummaryRow = (group: BudgetGroupSummary) => {
+    const progressPercentage = getProgressPercentage(group.totalActual, group.totalPlanned);
+    const remaining = getRemainingAmount(group.totalPlanned, group.totalActual);
+    const progressColor = getProgressColor(progressPercentage);
+    const isExpanded = expandedGroups.has(group.parentCategory.id);
+
+    return (
+      <TableRow 
+        key={`group-${group.parentCategory.id}`}
+        sx={{ 
+          backgroundColor: 'action.hover',
+          '&:hover': { backgroundColor: 'action.selected' }
+        }}
+      >
+        <TableCell>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <IconButton
+              size="small"
+              onClick={() => toggleGroupExpansion(group.parentCategory.id)}
+              sx={{ mr: 1 }}
+            >
+              {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
+            <Box>
+              <Typography variant="body1" fontWeight="bold" color="primary">
+                {group.parentCategory.name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {group.children.length} subcategor{group.children.length === 1 ? 'y' : 'ies'}
+              </Typography>
+            </Box>
+          </Box>
+        </TableCell>
+        <TableCell align="right">
+          <Typography variant="body1" fontWeight="bold">
+            {formatCurrency(group.totalPlanned, group.currency)}
+          </Typography>
+        </TableCell>
+        <TableCell align="right">
+          <Typography variant="body1" fontWeight="bold">
+            {formatCurrency(group.totalActual, group.currency)}
+          </Typography>
+        </TableCell>
+        <TableCell align="center">
+          <Box sx={{ minWidth: 120 }}>
+            <LinearProgress
+              variant="determinate"
+              value={progressPercentage}
+              color={progressColor}
+              sx={{ height: 8, borderRadius: 4, mb: 1 }}
+            />
+            <Typography variant="body2" color="text.secondary" fontWeight="bold">
+              {progressPercentage.toFixed(1)}%
+            </Typography>
+          </Box>
+        </TableCell>
+        <TableCell align="right">
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            {remaining >= 0 ? (
+              <TrendingUp color="success" fontSize="small" sx={{ mr: 0.5 }} />
+            ) : (
+              <TrendingDown color="error" fontSize="small" sx={{ mr: 0.5 }} />
+            )}
+            <Typography
+              variant="body1"
+              color={remaining >= 0 ? 'success.main' : 'error.main'}
+              fontWeight="bold"
+            >
+              {formatCurrency(Math.abs(remaining).toString(), group.currency)}
+            </Typography>
+          </Box>
+        </TableCell>
+        <TableCell align="right">
+          <Typography variant="body2" color="text.secondary">
+            Total
+          </Typography>
+        </TableCell>
+      </TableRow>
+    );
   };
 
   const renderBudgetRow = (budget: Budget, _budgetType: 'income' | 'expense', isChildBudget: boolean = false) => {
@@ -229,11 +331,13 @@ export const BudgetsPage: React.FC = () => {
   };
 
   const renderBudgetSection = (
-    budgets: Budget[], 
+    budgetGroups: { groupSummaries: BudgetGroupSummary[]; ungroupedBudgets: Budget[] }, 
     sectionType: 'income' | 'expense',
     sectionSummary: typeof incomeSummary
   ) => {
-    if (budgets.length === 0) return null;
+    const { groupSummaries, ungroupedBudgets } = budgetGroups;
+    
+    if (groupSummaries.length === 0 && ungroupedBudgets.length === 0) return null;
 
     const isIncome = sectionType === 'income';
     const sectionTitle = isIncome ? '📈 Income Budgets' : '💰 Expense Budgets';
@@ -290,7 +394,23 @@ export const BudgetsPage: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {budgets.map(budget => renderBudgetRow(budget, sectionType))}
+              {/* Parent category groups */}
+              {groupSummaries.map(group => {
+                const isExpanded = expandedGroups.has(group.parentCategory.id);
+                return (
+                  <React.Fragment key={`group-${group.parentCategory.id}`}>
+                    {renderGroupSummaryRow(group)}
+                    {isExpanded && group.children.map(budget => 
+                      renderBudgetRow(budget, sectionType, true)
+                    )}
+                  </React.Fragment>
+                );
+              })}
+              
+              {/* Top-level budgets (no parent) */}
+              {ungroupedBudgets.map(budget => 
+                renderBudgetRow(budget, sectionType, false)
+              )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -417,10 +537,10 @@ export const BudgetsPage: React.FC = () => {
       ) : (
         <>
           {/* Income Budgets Section */}
-          {renderBudgetSection(incomeBudgets, 'income', incomeSummary)}
+          {renderBudgetSection(incomeGroups, 'income', incomeSummary)}
           
           {/* Expense Budgets Section */}
-          {renderBudgetSection(expenseBudgets, 'expense', expenseSummary)}
+          {renderBudgetSection(expenseGroups, 'expense', expenseSummary)}
         </>
       )}
 
