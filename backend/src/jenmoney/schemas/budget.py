@@ -18,10 +18,14 @@ class BudgetBase(BaseAPIModel):
     currency: str = "USD"
 
 
-class BudgetCreate(BudgetBase):
+class BudgetCreate(BaseAPIModel):
     """Model for creating a new budget entry."""
 
-    pass
+    budget_year: Annotated[int, Field(ge=2000, le=2100)]
+    budget_month: Annotated[int, Field(ge=1, le=12)]
+    category_id: int
+    planned_amount: Decimal
+    currency: str | None = None
 
 
 class BudgetUpdate(BaseAPIModel):

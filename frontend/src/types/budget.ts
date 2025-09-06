@@ -18,7 +18,7 @@ export interface BudgetCreate {
   budget_month: number;
   category_id: number;
   planned_amount: string;
-  currency?: string;
+  currency?: string; // Optional - will use user's default if not provided
 }
 
 export interface BudgetUpdate {

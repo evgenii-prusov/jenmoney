@@ -30,7 +30,7 @@ class TestBudgetCreate:
         assert data["category_id"] == budget_data["category_id"]
         assert data["planned_amount"] == budget_data["planned_amount"]
         assert data["currency"] == budget_data["currency"]
-        assert data["actual_amount"] == "0"  # No transactions yet
+        assert data["actual_amount"] == "0.00"  # No transactions yet
         assert "id" in data
         assert "created_at" in data
         assert "updated_at" in data
@@ -81,6 +81,40 @@ class TestBudgetCreate:
         response2 = client.post("/api/v1/budgets/", json=budget_data)
         assert response2.status_code == 400
         assert "Budget already exists" in response2.json()["detail"]
+
+    def test_create_budget_uses_default_currency_when_none_provided(self, client: TestClient) -> None:
+        # First set the default currency to EUR
+        settings_response = client.patch("/api/v1/settings/", json={"default_currency": "EUR"})
+        assert settings_response.status_code == 200
+        
+        # Create a category for budgeting
+        category_data = {
+            "name": "Travel",
+            "description": "Travel expenses", 
+            "type": "expense"
+        }
+        category_response = client.post("/api/v1/categories/", json=category_data)
+        assert category_response.status_code == 200
+        category = category_response.json()
+        
+        # Create budget without specifying currency (should use default EUR)
+        budget_data = {
+            "budget_year": 2025,
+            "budget_month": 4,
+            "category_id": category["id"],
+            "planned_amount": "1000.00"
+            # Note: no currency field
+        }
+        response = client.post("/api/v1/budgets/", json=budget_data)
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Should use the default currency (EUR)
+        assert data["currency"] == "EUR"
+        assert data["planned_amount"] == "1000.00"
+        
+        # Reset default currency back to USD for other tests
+        client.patch("/api/v1/settings/", json={"default_currency": "USD"})
 
 
 class TestBudgetList:
