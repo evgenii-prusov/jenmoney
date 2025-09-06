@@ -3,10 +3,10 @@ import {
   Box,
   Grid,
   Typography,
-  Paper,
 } from '@mui/material';
 import { TotalBalance } from '../../components/TotalBalance';
 import { RecentTransactions } from './components/RecentTransactions';
+import { QuickStats } from './components/QuickStats';
 import { useTotalBalance } from '../../hooks/useSettings';
 
 export const DashboardPage: React.FC = () => {
@@ -24,26 +24,22 @@ export const DashboardPage: React.FC = () => {
       </Box>
 
       <Grid container spacing={3}>
-        {/* Total Balance */}
-        <Grid item xs={12}>
+        {/* Header row with Total Balance in top right */}
+        <Grid item xs={12} md={8}>
+          {/* Empty space for visual balance */}
+        </Grid>
+        <Grid item xs={12} md={4}>
           <TotalBalance data={totalBalanceData} loading={totalBalanceLoading} />
         </Grid>
 
-        {/* Recent Transactions */}
+        {/* Main content row */}
         <Grid item xs={12} md={8}>
           <RecentTransactions />
         </Grid>
 
-        {/* Quick Stats - Placeholder for future features */}
+        {/* Quick Stats */}
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              Quick Stats
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Monthly analytics coming soon...
-            </Typography>
-          </Paper>
+          <QuickStats />
         </Grid>
       </Grid>
     </Box>
