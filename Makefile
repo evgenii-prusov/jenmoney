@@ -58,11 +58,35 @@ test: ## Run backend tests
 	cd backend && uv run pytest -v
 
 # ============ Database ============
-db-init: ## Initialize SQLite database
+db-init: ## Initialize database (SQLite or PostgreSQL based on DATABASE_URL)
 	cd backend && uv run python -c "from jenmoney.database import init_db; init_db()"
 
-db-clean: ## Delete database file (data loss!)
+db-clean: ## Delete SQLite database file (data loss!)
 	rm -f backend/data/finance.db
+
+db-postgres-start: ## Start PostgreSQL using Docker
+	@echo "Starting PostgreSQL in Docker..."
+	docker run --name jenmoney-postgres -d \
+		-e POSTGRES_USER=jenmoney \
+		-e POSTGRES_PASSWORD=jenmoney \
+		-e POSTGRES_DB=jenmoney \
+		-p 5432:5432 \
+		postgres:15-alpine || echo "PostgreSQL container already exists"
+
+db-postgres-stop: ## Stop PostgreSQL Docker container
+	@echo "Stopping PostgreSQL container..."
+	docker stop jenmoney-postgres || echo "Container not running"
+
+db-postgres-clean: ## Remove PostgreSQL Docker container (data loss!)
+	@echo "Removing PostgreSQL container..."
+	docker stop jenmoney-postgres 2>/dev/null || true
+	docker rm jenmoney-postgres 2>/dev/null || true
+
+db-postgres-logs: ## Show PostgreSQL container logs
+	docker logs jenmoney-postgres
+
+db-migrate: ## Migrate data from SQLite to PostgreSQL
+	cd backend && uv run python scripts/migrate_sqlite_to_postgres.py
 
 # ============ Setup & Installation ============
 setup: ## Complete project setup (deps + database)

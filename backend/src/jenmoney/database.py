@@ -6,12 +6,15 @@ from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from jenmoney.config import settings
 
-# Ensure data directory exists
-data_dir = Path("data")
-data_dir.mkdir(exist_ok=True)
+# Ensure data directory exists for SQLite
+if settings.is_sqlite:
+    data_dir = Path("data")
+    data_dir.mkdir(exist_ok=True)
 
-# SQLite specific connection args
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+# Database specific connection args
+connect_args = {}
+if settings.is_sqlite:
+    connect_args = {"check_same_thread": False}
 
 engine = create_engine(
     settings.database_url,

@@ -88,10 +88,27 @@ make pr-check      # Run all checks before creating a PR
 ```
 
 ### Database Management
+
+**Database Support**: JenMoney supports both SQLite (default) and PostgreSQL databases.
+
 ```bash
+# SQLite (default)
 make db-init       # Initialize SQLite database
-make db-clean      # Delete database file (data loss warning!)
+make db-clean      # Delete SQLite database file (data loss warning!)
+
+# PostgreSQL (production-ready)
+make db-postgres-start   # Start PostgreSQL using Docker
+make db-postgres-stop    # Stop PostgreSQL Docker container
+make db-postgres-clean   # Remove PostgreSQL container (data loss!)
+make db-postgres-logs    # Show PostgreSQL container logs
+make db-migrate          # Migrate data from SQLite to PostgreSQL
 ```
+
+**Configuration**: Set `DATABASE_URL` environment variable:
+- SQLite: `sqlite:///./data/finance.db` (default)
+- PostgreSQL: `postgresql://jenmoney:jenmoney@localhost:5432/jenmoney`
+
+For detailed PostgreSQL setup and migration, see `docs/POSTGRESQL_MIGRATION.md`.
 
 ### Setup & Installation
 ```bash
@@ -167,9 +184,15 @@ Environment variables are centralized in the project root:
 
 ### Database
 
-- SQLite for development (file: `backend/data/finance.db`)
+**Supported Databases**:
+- **SQLite**: Default for development (`backend/data/finance.db`)
+- **PostgreSQL**: Recommended for production (configurable via `DATABASE_URL`)
+
+**Features**:
 - Models use SQLAlchemy ORM with autoincrement IDs
-- Alembic for migrations (when needed)
+- Database-agnostic code supports both SQLite and PostgreSQL
+- Migration script available for SQLite → PostgreSQL transition
+- Alembic for schema migrations (when needed)
 
 ## Key Technical Decisions
 
