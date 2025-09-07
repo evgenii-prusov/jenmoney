@@ -1,4 +1,5 @@
 import pytest
+import os
 from decimal import Decimal
 from datetime import datetime, timezone
 from fastapi.testclient import TestClient
@@ -10,13 +11,17 @@ from jenmoney.database import Base, get_db
 from jenmoney.main import app
 from jenmoney import crud, models, schemas
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+# Always use in-memory SQLite for tests unless explicitly overridden
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", "sqlite:///:memory:")
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+engine_kwargs = {}
+if TEST_DATABASE_URL.startswith("sqlite"):
+    engine_kwargs = {
+        "connect_args": {"check_same_thread": False},
+        "poolclass": StaticPool,
+    }
+
+engine = create_engine(TEST_DATABASE_URL, **engine_kwargs)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

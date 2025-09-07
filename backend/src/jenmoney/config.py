@@ -26,7 +26,18 @@ class Settings(BaseSettings):
     )
 
     @property
+    def is_sqlite(self) -> bool:
+        """Check if using SQLite database."""
+        return self.database_url.startswith("sqlite")
+
+    @property
+    def is_postgresql(self) -> bool:
+        """Check if using PostgreSQL database."""
+        return self.database_url.startswith("postgresql")
+
+    @property
     def database_path(self) -> Path:
+        """Get database file path for SQLite databases."""
         if self.database_url.startswith("sqlite:///"):
             path = Path(self.database_url.replace("sqlite:///", ""))
             return path.resolve()
